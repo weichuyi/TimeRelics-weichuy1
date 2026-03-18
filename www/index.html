@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta name="color-scheme" content="light">
+	<meta name="theme-color" content="#ff7e5f">
+    <title>index</title>
+    <style>
+		* {
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-touch-callout: none; 
+            -webkit-user-select: none; 
+            user-select: none;
+        }
+        
+        input, textarea {
+            -webkit-user-select: auto;
+            user-select: auto;
+        }
+	
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff9f5; overscroll-behavior: none;
+
+		padding-top: env(safe-area-inset-top); /* 加上这行适配手机顶部的刘海/黑框 */
+		}
+		
+		
+		
+        iframe { width: 100%; height: 100%; border: none; display: block; }
+        
+        #music-wrap {
+            position: fixed; z-index: 9999;
+            width: 38px; height: 38px; background: rgba(255, 255, 255, 0.85);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(255, 126, 95, 0.3); 
+            transition: left 0.3s ease, top 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+            touch-action: none;
+            overflow: hidden; 
+        }
+        
+        #music-wrap.dragging { transition: none !important; transform: scale(1.1); }
+        #music-wrap.snapped-left { left: 0 !important; transform: translateX(-50%); opacity: 0.4; }
+        #music-wrap.snapped-right { transform: translateX(50%); opacity: 0.4; }
+
+        #music-btn {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            animation: spin 4s linear infinite; cursor: pointer;
+        }
+        
+        /* ★ 修改：让图片彻底覆盖整个圆形容器 */
+        #music-btn img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        
+        .paused { animation-play-state: paused !important; opacity: 0.6; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="music-wrap" onclick="handleMusicClick(event)">
+        <div id="music-btn">
+            <img src="icon/music.png" alt="BGM">
+        </div>
+    </div>
+    
+    <audio id="bgm" src="icon/bgm.mp3" loop preload="auto"></audio>
+    <iframe src="login.html" id="main-frame"></iframe>
+
+    <script type="text/javascript" src="cordova.js"></script>
+
+    <script>
+        var bgm = document.getElementById('bgm');
+        var btn = document.getElementById('music-btn');
+        var wrap = document.getElementById('music-wrap');
+        var iframe = document.getElementById('main-frame');
+        var isManualPaused = false;
+        var isAutoPausedByRadio = false; 
+        
+        /* ================= 核心监测逻辑：进入电台自动暂停 ================= */
+        iframe.onload = function() {
+            try {
+                var currentUrl = iframe.contentWindow.location.href;
+                // 检测是否进入了电台页面
+                if (currentUrl.indexOf('Radio.html') !== -1) {
+                    if (!bgm.paused) {
+                        bgm.pause();
+                        btn.classList.add('paused');
+                        isAutoPausedByRadio = true;
+                    }
+                } 
+                // 如果是从电台退回到菜单或其他页面，且之前是自动暂停的，则恢复
+                else if (isAutoPausedByRadio && !isManualPaused) {
+                    bgm.play().catch(e => {});
+                    btn.classList.remove('paused');
+                    isAutoPausedByRadio = false;
+                }
+            } catch(e) {
+                // 处理可能的跨域安全限制
+                console.log("无法直接监测URL，将依赖通讯系统");
+            }
+        };
+
+        /* ================= 智能悬浮与拖拽逻辑 ================= */
+        var isDragging = false, hasMoved = false;
+        var startX, startY, initialX, initialY;
+        var snapTimeout, isSnapped = false;
+
+        wrap.style.left = (window.innerWidth - 58) + 'px'; 
+        wrap.style.top = '50px';
+        wakeUp();
+
+        function wakeUp() {
+            if (isSnapped) {
+                wrap.classList.remove('snapped-left', 'snapped-right');
+                var rect = wrap.getBoundingClientRect();
+                var centerX = rect.left + rect.width / 2;
+                wrap.style.left = (centerX < window.innerWidth / 2) ? '10px' : (window.innerWidth - 48) + 'px';
+                isSnapped = false;
+            }
+            clearTimeout(snapTimeout);
+            snapTimeout = setTimeout(snapToEdge, 1500); 
+        }
+
+        function snapToEdge() {
+            if (isDragging) return;
+            var rect = wrap.getBoundingClientRect();
+            var centerX = rect.left + rect.width / 2;
+            var screenWidth = window.innerWidth;
+            if (centerX < screenWidth / 2) {
+                wrap.style.left = '0px'; wrap.classList.add('snapped-left');
+            } else {
+                wrap.style.left = (screenWidth - rect.width) + 'px'; wrap.classList.add('snapped-right');
+            }
+            isSnapped = true;
+        }
+
+        function dragStart(e) {
+            wakeUp(); isDragging = true; hasMoved = false;
+            startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            var rect = wrap.getBoundingClientRect();
+            initialX = rect.left; initialY = rect.top;
+            wrap.classList.add('dragging');
+            iframe.style.pointerEvents = 'none';
+        }
+
+        function dragMove(e) {
+            if (!isDragging) return;
+            var currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            var currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            var deltaX = currentX - startX; var deltaY = currentY - startY;
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
+            if (hasMoved) {
+                e.preventDefault(); 
+                var newX = initialX + deltaX; var newY = initialY + deltaY;
+                var maxX = window.innerWidth - 38; var maxY = window.innerHeight - 38;
+                wrap.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+                wrap.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
+            }
+        }
+
+        function dragEnd(e) {
+            if (!isDragging) return;
+            isDragging = false; wrap.classList.remove('dragging');
+            wakeUp(); iframe.style.pointerEvents = 'auto';
+            if (hasMoved) {
+                var rect = wrap.getBoundingClientRect();
+                var centerX = rect.left + rect.width / 2;
+                wrap.style.left = (centerX < window.innerWidth / 2) ? '10px' : (window.innerWidth - 48) + 'px';
+            }
+        }
+
+        wrap.addEventListener('mousedown', dragStart);
+        document.addEventListener('mousemove', dragMove, {passive: false});
+        document.addEventListener('mouseup', dragEnd);
+        wrap.addEventListener('touchstart', dragStart, {passive: false});
+        document.addEventListener('touchmove', dragMove, {passive: false});
+        document.addEventListener('touchend', dragEnd);
+
+        /* ================= 跨页面通讯逻辑 ================= */
+        window.addEventListener('message', function(event) {
+            if (event.data === 'playMusic') {
+                if (bgm.paused && !isManualPaused && !isAutoPausedByRadio) {
+                    bgm.play().catch(e => console.log("等待交互"));
+                    btn.classList.remove('paused');
+                }
+            } else if (event.data === 'pauseBGM') {
+                if (!bgm.paused) {
+                    bgm.pause(); btn.classList.add('paused');
+                    isAutoPausedByRadio = true; 
+                }
+            } else if (event.data === 'resumeBGM') {
+                if (bgm.paused && !isManualPaused) {
+                    bgm.play().catch(e => {});
+                    btn.classList.remove('paused');
+                    isAutoPausedByRadio = false;
+                }
+            }
+        });
+
+        function handleMusicClick(e) {
+            if (hasMoved) { hasMoved = false; return; }
+            if (isSnapped) { wakeUp(); } else { toggleMusic(); wakeUp(); }
+        }
+
+        function toggleMusic() {
+            if (bgm.paused) {
+                bgm.play(); btn.classList.remove('paused');
+                isManualPaused = false; isAutoPausedByRadio = false;
+            } else {
+                bgm.pause(); btn.classList.add('paused');
+                isManualPaused = true; 
+            }
+        }
+
+        /* ================= 系统级补丁 ================= */
+        document.addEventListener("deviceready", function() {
+		
+			
+		
+            if (navigator.splashscreen) setTimeout(() => navigator.splashscreen.hide(), 500);
+            
+            document.addEventListener("pause", () => {
+                if (!bgm.paused) {
+                    bgm.pause(); bgm.setAttribute('data-interrupted', 'true');
+                    btn.classList.add('paused');
+                }
+            }, false);
+            
+            document.addEventListener("resume", () => {
+                if (bgm.getAttribute('data-interrupted') === 'true' && !isManualPaused && !isAutoPausedByRadio) {
+                    bgm.play(); bgm.removeAttribute('data-interrupted');
+                    btn.classList.remove('paused');
+                }
+            }, false);
+
+            var exitClickTime = 0;
+			
+			
+			
+            document.addEventListener("backbutton", function(e) {
+    e.preventDefault(); 
+    var currentUrl = "";
+    try { currentUrl = iframe.contentWindow.location.href || ""; } catch(err) { currentUrl = iframe.src || ""; }
+    if (currentUrl.includes('login.html') || currentUrl.includes('menu.html')) {
+        // 退出逻辑不变
+        var nowTime = new Date().getTime();
+        if (nowTime - exitClickTime < 2000) { 
+            navigator.app.exitApp(); 
+        } else {
+            exitClickTime = nowTime;
+            var toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed; bottom:120px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); color:white; padding:10px 20px; border-radius:20px; font-size:13px; z-index:99999; animation:fadeInOut 2s forwards; pointer-events:none; letter-spacing:1px; white-space:nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
+            toast.innerText = '再按一次退出时光机';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+    } else {
+        // 非首页，让子页面自己处理返回
+        try {
+            iframe.contentWindow.history.back();
+        } catch(err) {
+            // 如果出错（例如跨域），回退到menu
+            iframe.contentWindow.location.replace('menu.html');
+        }
+    }
+}, false);
+
+
+
+        }, false);
+    </script>
+</body>
+</html>

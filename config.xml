@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.weichuyi.hu" version="1.6.6" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>时光拾遗</name>
+    <description>
+        我们这一路走来真的很容易
+    </description>
+    <author email="weichu@yi.com" href="https://shi-guang-shi-yi.com">
+        weichuyi
+    </author>
+    
+    <content src="index.html" />
+    <access origin="*" />
+
+  <access origin="https://raw.githubusercontent.com" />
+  <access origin="https://github.com" />
+  <access origin="https://objects.githubusercontent.com" />
+  <access origin="https://github-releases.githubusercontent.com" />
+  <allow-navigation href="https://*/*" />
+  <allow-navigation href="http://*/*" />
+
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+
+    <platform name="android">
+        <icon src="res/icon/icon.png" />
+        
+		<preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/icon/icon.png" />
+        
+        <preference name="AndroidWindowSplashScreenBackground" value="#fff9f5" />
+		
+		<preference name="MediaPlaybackRequiresUserAction" value="false" />
+		<preference name="AllowInlineMediaPlayback" value="true" />
+		
+		<preference name="BackgroundColor" value="0xfffff9f5" />
+		
+		<preference name="StatusBarBackgroundColor" value="#fff9f5" />
+		<preference name="StatusBarStyle" value="darkcontent" />
+		
+		
+    </platform>
+</widget>

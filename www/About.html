@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>About</title>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-touch-callout: none; 
+            -webkit-user-select: none; 
+            user-select: none;
+        }
+
+        ::-webkit-scrollbar { display: none; width: 0; height: 0; color: transparent; }
+        html, body { -ms-overflow-style: none; scrollbar-width: none; }
+        input, textarea { -webkit-user-select: auto; user-select: auto; }
+
+        :root {
+            --bg: #fff9f5;
+            --text-dark: #111111;
+            --text-light: #555555;
+            --muted: #a8a8a8;
+        }
+
+        body {
+            margin: 0; padding: 0; background: var(--bg);
+            font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text-dark);
+            overflow-x: hidden;
+            overscroll-behavior: none; 
+        }
+
+        .header {
+            position: fixed; top: 0; left: 0; width: 100%; box-sizing: border-box; z-index: 100;
+            background: rgba(255, 255, 255, 0.65); 
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border-bottom: 2px solid rgba(0, 0, 0, 0.8);
+            border-left: 1.5px solid rgba(0, 0, 0, 0.15);
+            border-right: 1.5px solid rgba(0, 0, 0, 0.15);
+            border-top: none;
+            border-radius: 0 0 24px 24px;
+            padding: calc(12px + env(safe-area-inset-top)) 16px 12px 16px;
+            display: flex; align-items: center;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .back-btn { color: #111; text-decoration: none; font-size: 20px; font-weight: 900; margin-right: 15px; padding-right: 10px; }
+        .title { color: #111; font-size: 18px; margin: 0; font-weight: 900; letter-spacing: 1px; }
+
+        .content { padding: calc(85px + env(safe-area-inset-top)) 20px 20px 20px; }
+
+        .app-info { text-align: center; margin-bottom: 40px; }
+        .app-logo { width: 80px; height: 80px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); margin-bottom: 12px; transition: transform 0.2s; cursor: pointer;}
+        .app-logo:active { transform: scale(0.95); }
+        .version-tag { background: #e53e3e; color: #ffffff; padding: 4px 14px; border-radius: 12px; font-size: 12px; font-weight: 900; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+        .timeline { position: relative; padding-left: 15px; }
+        .timeline::before {
+            content: ''; position: absolute; left: 0; top: 15px; bottom: 10px;
+            width: 2px; background: rgba(0,0,0,0.06);
+        }
+/* 测试     */
+        /* ★ 大组容器：视锥懒加载基础样式 */
+        .version-group { 
+            margin-bottom: 8px; 
+            opacity: 0; 
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .version-group.in-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .group-header {
+            position: relative; background: transparent; padding: 10px 10px 15px 10px; 
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+            transition: transform 0.2s; z-index: 5;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .group-header:active { transform: scale(0.98); opacity: 0.7; }
+        .group-header::before {
+            content: ''; position: absolute; left: -18.5px; top: 20px; transform: translateY(-50%);
+            width: 6px; height: 6px; background: #111; border-radius: 50%; border: 3px solid var(--bg); z-index: 2;
+        }
+        .group-title { font-size: 16px; font-weight: 900; color: #111; margin-bottom: 2px;} 
+        .group-meta { font-size: 11px; color: var(--text-light); font-weight: bold;} 
+        .toggle-icon { font-size: 12px; color: #111; font-weight: 900; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .group-content { display: none; padding-top: 5px; padding-bottom: 15px; }
+
+        /* ★ 卡片节点：错峰逐帧渲染基础样式 */
+        .node { 
+            position: relative; margin-bottom: 25px; 
+            opacity: 0; 
+            transform: translateY(15px);
+            transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .node.show-node {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .node:last-child { margin-bottom: 5px; }
+
+        .node::before {
+            content: ''; position: absolute; left: -18px; top: 8px;
+            width: 5px; height: 5px; background: #fff; border-radius: 50%;
+            border: 2px solid #ccc; z-index: 2;
+        }
+
+        .v-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding-left: 5px;}
+        .v-num-box { display: flex; align-items: baseline; }
+        .v-num { font-weight: 900; font-size: 14px; color: #111; }
+        .v-time { font-size: 11px; color: #999; margin-left: 8px; font-weight: bold; }
+
+        .tag { font-size: 10px; padding: 4px 10px; border-radius: 8px; font-weight: 900; color: #fff; box-sizing: border-box; letter-spacing: 0.5px; }
+        .tag-epic { background: linear-gradient(135deg, #ff4444 0%, #ff7e5f 100%); box-shadow: 0 3px 10px rgba(255, 126, 95, 0.4); } 
+        .tag-egg { background: linear-gradient(135deg, #b066fe 0%, #63e2ff 100%); box-shadow: 0 3px 10px rgba(176, 102, 254, 0.3); } 
+        .tag-feat { background: #00b894; box-shadow: 0 2px 6px rgba(0, 184, 148, 0.2); } 
+        .tag-ux   { background: #0984e3; box-shadow: 0 2px 6px rgba(9, 132, 227, 0.2); } 
+        .tag-arch { background: #2d3436; } 
+        .tag-opt  { background: #fdcb6e; color: #333; } 
+        .tag-fix  { background: #dfe6e9; color: #636e72; } 
+
+        .v-card { 
+            background: rgba(255, 255, 255, 0.55); 
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: none; padding: 18px; border-radius: 20px; 
+            box-shadow: 0 6px 20px rgba(0,0,0,0.03); 
+        }
+
+        .v-title { font-size: 14px; font-weight: 900; margin-bottom: 10px; color: #111; }
+        .v-desc { font-size: 13px; line-height: 1.7; color: var(--text-light); margin: 0; text-align: justify; font-weight: 500;}
+
+        .pitfall { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.05); font-size: 11px; color: #111; line-height: 1.5; font-weight: 800; }
+        .pit-icon { font-weight: 900; margin-right: 5px; color: #ff7e5f; font-size: 13px;}
+
+        .footer { text-align: center; font-size: 10px; color: var(--muted); margin: 40px 0 20px; font-weight: bold;}
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+	
+		<a href="javascript:void(0)" onclick="history.back()" class="back-btn">←</a>
+		
+        <h1 class="title">更新日志</h1>
+    </div>
+
+    <div class="content">
+        <div class="app-info">
+            <img src="icon/logo.png" class="app-logo">
+            <h2 style="margin: 5px 0; font-weight: 900; letter-spacing: 1px;">时光拾遗</h2>
+            <span class="version-tag">@Build v2.2.6</span>
+        </div>
+
+        <div class="timeline">
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v2.2</div>
+                        <div class="group-meta"> · 包含 7 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(180deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: block;">
+
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.2.6</span><span class="v-time">2026.03.18</span></div>
+                            <span class="tag tag-fix">模块新增</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">新增nameduodx</div>
+                            <p class="v-desc">
+                                引入 nameduodx 功能模块；<br>
+                                相关日志已记录于系统更新中。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>为2.版本的最终版。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.2.5</span><span class="v-time">2026.03.18</span></div>
+                            <span class="tag tag-fix">资源优化</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">资源文件夹化</div>
+                            <p class="v-desc">
+                                统一文件结构；<br>
+                                登录页日期选择器重设计；<br>
+                                整合渐变、玻璃态效果；<br>
+                                模态对话框，解决显示边界问题。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>项目资源结构更清晰，登录体验更精致。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.2.4</span><span class="v-time">2026.03.18</span></div>
+                            <span class="tag tag-epic">开发工具</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">更换了新的开发工具</div>
+                            <p class="v-desc">
+                                我一直用natepad++更新到了2.2.4；<br>
+                                今天换成Visual Code；<br>
+                                停之停之，一直以来我吃的苦算什么；<br>
+                                提升至少30%的开发效率。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>大幅提高开发效率。</div>
+						</div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.2.3</span><span class="v-time">2026.03.17</span></div>
+                            <span class="tag tag-fix">视觉加固</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">视域全屏化与安全区算法重构</div>
+                            <p class="v-desc">
+                                全局注入动态感应补丁；<br>
+                                重写通讯协议，实现状态栏0偏差融合；<br>
+                                优化容器层级，解决高分屏下的像素穿透。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>解决了异形屏设备在渲染时产生的Bug。</div>
+						</div>
+                    </div>
+                    
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.2.2</span><span class="v-time">2026.03.16</span></div>
+                            <span class="tag tag-fix">视距修复</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">虚拟列表边界穿透修复</div>
+                            <p class="v-desc">
+                                修复虚拟引擎导致导航栏遮挡的问题；<br>
+								重构坐标算法<br>
+								支持动态读取容器留白偏移量；<br>
+                                底部渲染域新增弹性缓冲空间。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>解决节点脱离文档流后导致的物理视距塌陷Bug。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.2.1</span><span class="v-time">2026.03.16</span></div>
+                            <span class="tag tag-fix">底层加固</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">数据闭环底层与时序修复</div>
+                            <p class="v-desc">
+                                根除弱类型转换引发的撤销失效Bug；<br>
+                                重构弹窗抛出时机。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>解决了备用库存储失效死角。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.2.0</span><span class="v-time">2026.03.16</span></div>
+                            <span class="tag tag-epic">引擎重构</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">管理引擎完全体</div>
+                            <p class="v-desc">
+                                头部引入实时动态数据看板；<br>
+                                剥离静态渲染机制。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>让数据资产的增减变得一目了然。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v2.1</div>
+                        <div class="group-meta"> · 包含 9 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+                    
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.1.8</span><span class="v-time">2026.03.16</span></div>
+                            <span class="tag tag-opt">细节打磨</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">对齐与智能折叠</div>
+                            <p class="v-desc">
+                                引入智能渲染预判引擎；<br>
+                                实施绝对等高算法；<br>
+                                重构卡片信息流视距。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>治愈了强迫症痛点。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.1.7</span><span class="v-time">2026.03.16</span></div>
+                            <span class="tag tag-ux">体验升级</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">视觉重塑</div>
+                            <p class="v-desc">
+                                全域淘汰系统默认图标；<br>
+                                注入定制化下拉阴影算法。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>消除了移动端残留的元素违和感。</div>
+                        </div>
+                    </div>
+
+					<div class="node">
+						<div class="v-header">
+        				<div class="v-num-box"><span class="v-num">V 2.1.6</span><span class="v-time">2026.03.16</span></div>
+        				<span class="tag tag-fix">底层加固</span>
+    				</div>
+    				<div class="v-card">
+        				<div class="v-title">底层类型与时序修复</div>
+        				<p class="v-desc">
+            				根除弱类型转换引发的撤销失效Bug；<br>
+            				重构弹窗抛出时机。
+        				</p>
+        				<div class="pitfall"><span class="pit-icon">!</span>解决了“经典类型陷阱”导致的备用库存储失效死角。</div>
+    				</div>
+				</div>
+				
+					<div class="node">
+						<div class="v-header">
+        				<div class="v-num-box"><span class="v-num">V 2.1.5</span><span class="v-time">2026.03.16</span></div>
+        				<span class="tag tag-epic">引擎重构</span>
+    				</div>
+    				<div class="v-card">
+        			<div class="v-title">管理引擎完全体</div>
+        			<p class="v-desc">
+						头部画框引入实时动态数据看板；<br>
+						剥离静态渲染机制，实现无感丝滑更新。
+					</p>
+        			<div class="pitfall"><span class="pit-icon">!</span>让数据资产的增减变得一目了然。</div>
+				    </div>
+				</div>
+				
+					<div class="node">
+						<div class="v-header">
+						<div class="v-num-box"><span class="v-num">V 2.1.4</span><span class="v-time">2026.03.16</span></div>
+						<span class="tag tag-egg">专属彩蛋</span>
+						</div>
+						<div class="v-card">
+						<div class="v-title">视觉跃升</div>
+						<p class="v-desc">
+							重构独立泛光动效；<br>
+							利用纯白内芯叠加三层彩色渲染。
+						</p>
+						<div class="pitfall"><span class="pit-icon">!</span>在极致素雅的黑白界底色中，埋入最强烈的视觉爆点。</div>
+					</div>
+				</div>
+				
+					<div class="node">
+						<div class="v-header">
+						<div class="v-num-box"><span class="v-num">V 2.1.3</span><span class="v-time">2026.03.16</span></div>
+						<span class="tag tag-ux">视觉焕新</span>
+						</div>
+						<div class="v-card">
+						<div class="v-title">核心数据提亮方案</div>
+						<p class="v-desc">
+							在全局冷淡风体系中注入主题色生命力；<br>
+							底增加强质感微发光投影。
+						</p>
+						<div class="pitfall"><span class="pit-icon">!</span>提升体验。</div>
+					</div>
+				</div>
+				
+					<div class="node">
+						<div class="v-header">
+						<div class="v-num-box"><span class="v-num">V 2.1.2</span><span class="v-time">2026.03.16</span></div>
+						<span class="tag tag-arch">逻辑互斥</span>
+						</div>
+						<div class="v-card">
+						<div class="v-title">双核音源跨页面监测</div>
+						<p class="v-desc">
+							为主入口注入生命周期拦截器；<br>
+							全自动嗅探路由变化。
+						</p>
+						<div class="pitfall"><span class="pit-icon">!</span>解决了音频互串的“灾难级”重叠体验。</div>
+					</div>
+				</div>
+				
+					<div class="node">
+						<div class="v-header">
+						<div class="v-num-box"><span class="v-num">V 2.1.1</span><span class="v-time">2026.03.16</span></div>
+						<span class="tag tag-opt">体验调优</span>
+						</div>
+						<div class="v-card">
+						<div class="v-title">悬浮模块控件重构</div>
+						<p class="v-desc">
+							淘汰原生系统级音符字符；<br>
+							放大悬浮容器渲染层级。
+						</p>
+						<div class="pitfall"><span class="pit-icon">!</span>提升体验。</div>
+					</div>
+				</div>
+				
+					<div class="node">
+						<div class="v-header">
+						<div class="v-num-box"><span class="v-num">V 2.1.0</span><span class="v-time">2026.03.16</span></div>
+						<span class="tag tag-epic">全域重构</span>
+						</div>
+						<div class="v-card">
+						<div class="v-title">视觉大一统</div>
+						<p class="v-desc">
+							全量进化全页面导航；<br>
+                            全量亚克力化；<br>
+                            彻底替换为定制图标；<br>
+                            重写相册排版算法；<br>
+                            上线跨页面音频协管；<br>
+                            电台黑胶唱片重构为绝对定位；<br>
+                            全域文字易读性调优。
+						</p>
+						<div class="pitfall"><span class="pit-icon">!</span>视觉风格与底层逻辑至此达成高度闭环。</div>
+					</div>
+				</div>
+                </div>
+            </div>
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v2.0</div>
+                        <div class="group-meta"> · 包含 2 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.0.1</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-ux">体验升级</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">播放倒带与视觉通透化</div>
+                            <p class="v-desc">
+                                支持精准回溯刚才听过的语音记忆；<br>
+                                剥离歌词区白底卡片与阴影；<br>
+                                重构顶部导航，消除视觉压迫感。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>手滑错过的好声音，现在终于可以倒带重听了。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.0.0</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-epic">史诗更新</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">“语音电台”与“矩阵主页”双核降临</div>
+                            <p class="v-desc">
+                                自动抓取全域近千条语音；<br>
+								引入动态起降唱针；<br>
+								专属图文封面及引擎同步旋转动效；<br>
+                                使用DOMParser提取音频直连原生对象；<br>
+								支持系统级底层防误触拦截；<br>
+								新增多级震感反馈；<br>
+                                首创全透明呼吸感文字域；<br>
+								文本自动生成专属丝滑滚动轴；<br>
+								优化切歌强制回顶；<br>
+                                独家拦截原始系统错码；<br>
+                                全面升维为专业级布局；<br>
+                                下潜菜单底部寄语无缝贴合边缘；<br>
+								全页共享防白屏底色机制；<br>
+								预留未来接口。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>把散落在时间长河里的声音重塑为专属电台。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v1.7</div>
+                        <div class="group-meta"> · 包含 9 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.7.8</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-ux">体验优化</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">时光盲盒引导系统</div>
+                            <p class="v-desc">
+								新增高透磨砂质感引导页；<br>
+								引入阅读状态锁；<br>
+                                优化引导页与背景消息流的层级关系。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>赋予了核心功能一份正式的仪式感。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.7.7</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-ux">体验优化</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">时光跳转与UI视觉净化</div>
+                            <p class="v-desc">
+                                重构自定义对话框；<br>
+                                新增匹配逻辑；<br>
+                                优化跳转后的搜索栏自动收起逻辑。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>彻底解决了“查无此日”导致的交互中断感。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.7.6</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-opt">性能巅峰</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">全域零闪烁系统</div>
+                            <p class="v-desc">
+								引入状态锁；<br>
+                                返回菜单的响应速度提升400%；<br>
+                                彻底根治转场时一闪而过的白屏破绽。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>视觉连贯性上的最后一道屏障被彻底消灭。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.7.5</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-fix">路由修复</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">历史栈无痕替换与侧滑修复</div>
+                            <p class="v-desc">
+								页面入口改用底层无痕替换机制；<br>
+								修复侧滑返回时直达主界面的系统级Bug。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>完美化解了移动端底层物理返回的冲突死角。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.7.4</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-ux">体验升维</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">沉浸式全域触觉反馈</div>
+                            <p class="v-desc">
+								引入骨架屏与视锥懒加载引擎；<br>
+                                底层硬件注入真实马达震动反馈；<br>
+                                全局剥离系统默认滚动条。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>交互手感正式比肩原生系统App。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.7.3</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-ux">体验重构</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">星标管理优化</div>
+                            <p class="v-desc">
+								新增单条收藏置顶功能；<br>
+                                引入无感模式支持多选删除及撤销机制；<br>
+                                消灭白屏闪烁与滚动条跳动；<br>
+							    采用强制吸顶解决导航栏滑动消失问题。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>彻底攻克了列表频繁重绘的性能瓶颈。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.7.2</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-feat">深度打磨</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">动态计时与布局比例重构</div>
+                            <p class="v-desc">
+                                首页上线实时计时器；<br>
+                                优化红米K70适配；<br>找回底部“关于软件”入口；<br>
+                                针对长按上移了显示坐标；<br>
+                                重写双击算法。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>这是当时最接近满分的版本。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.7.1</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-ux">体验优化</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">视觉比例重构</div>
+                            <p class="v-desc">通过次级横向卡片优化功能优先级；<br>针对红米K70调整顶部视距。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>针对机型优化体验。</div>
+                        </div>
+					</div>
+				
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.7.0</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-feat">重大更新</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">“星标拾遗”功能上线</div>
+                            <p class="v-desc">支持双击气泡触发收藏；<br>新增专属“星标展示页”。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>让数据真正产生温度。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v1.6</div>
+                        <div class="group-meta"> · 包含 8 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.6.7</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-fix">底层加固</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">原生质感破绽修复</div>
+                            <p class="v-desc">修复弹窗预览时的底层穿透问题；<br>全局禁用 文字误选与蓝底光标；<br>配置原生音频特权。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>彻底清除了 在移动端最后的违和感。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.6.6</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-opt">终极打磨</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">沉浸式质感</div>
+                            <p class="v-desc">免疫HyperOS的UI反色毁损；<br>彻底消灭滑动时的回弹效果。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>补齐底层体验缺口。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.6.5</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-opt">原生适配</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">全面屏与原生手势适配</div>
+                            <p class="v-desc">避让红米K70的挖孔及手势操作区；<br>全局禁用长按系统级菜单的弹出。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>实现了真正的原生 App 沉浸式体验。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.6.4</span><span class="v-time">2026.03.14</span></div>
+                            <span class="tag tag-fix">体验闭环</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">交互细节终极打磨</div>
+                            <p class="v-desc">补齐大图预览时的侧滑防退保护；<br>优化搜索面板的丝滑展开动画；<br>彻底封堵页面的历史栈嵌套漏洞。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>移动端手势逻辑形成绝对严密的闭环。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.6.3</span><span class="v-time">2026.03.14</span></div>
+                            <span class="tag tag-ux">视觉净化</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">全局触控高亮遮罩清除</div>
+                            <p class="v-desc">全面接管移动端点击反馈；<br>引入全局透明化属性；<br>根除移动设备系统原生遮罩。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>提升移动端的原生沉浸感。</div>
+                        </div>
+                    </div>
+				
+					<div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.6.2</span><span class="v-time">2026.03.15</span></div>
+                            <span class="tag tag-fix">路由修复</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">侧滑返回与历史栈穿透修复</div>
+                            <p class="v-desc">全面接管移动端物理返回与侧滑手势；<br>
+							修复子页面返回时的路由穿透问题；
+							<br>优化相册大图预览时侧滑仅关闭弹窗。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>移动端内存回收导致底层页面丢失。</div>
+                        </div>
+                    </div>
+				
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.6.1</span><span class="v-time">2026.03.14</span></div>
+                            <span class="tag tag-egg">专属彩蛋</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">长按式惊喜彩蛋</div>
+                            <p class="v-desc">在主菜单中埋入长按交互机制。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>重构了视觉重心，解决了文字与卡片的冲突。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.6.0</span><span class="v-time">2026.03.14</span></div>
+                            <span class="tag tag-ux">数据重构</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">沉浸式体验优化</div>
+                            <p class="v-desc">重构动画、词云、数据图表等效果。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>将数据转化为交互报告。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v1.5</div>
+                        <div class="group-meta"> · 包含 4 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+                    
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.5.3</span><span class="v-time">2026.03.14</span></div>
+                            <span class="tag tag-feat">机制重构</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">盲盒引擎修复与隐藏机关</div>
+                            <p class="v-desc">修复动画加载问题；<br>新增双击隐藏机关。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>函数作用域引发的执行中断血坑。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.5.2</span><span class="v-time">2026.03.14</span></div>
+                            <span class="tag tag-fix">Bug修复</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">导航栏状态重置修复</div>
+                            <p class="v-desc">修复搜索按钮状态未能正确重置的问题。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>原有的类名选择器误伤了相邻的导航按钮。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.5.1</span><span class="v-time">2026.03.14</span></div>
+                            <span class="tag tag-egg">专属彩蛋</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">专属时间胶囊</div>
+                            <p class="v-desc">在聊天主线底层渲染引擎中埋入时间触发器。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>强行插入专属 UI 模块。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 1.5.0</span><span class="v-time">2026.03.14</span></div>
+                            <span class="tag tag-ux">版面重构</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">更新日志版面重构</div>
+                            <p class="v-desc">全面优化排版；<br>引入手风琴折叠交互逻辑。</p>
+                            <div class="pitfall"><span class="pit-icon">!</span>解决近30个版本堆叠带来的信息过载。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v1.4</div>
+                        <div class="group-meta"> · 包含 13 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.12</span><span class="v-time">2026.03.14</span></div><span class="tag tag-fix">Bug修复</span></div><div class="v-card"><div class="v-title">悬浮窗触控失效修复</div><p class="v-desc">修复唤醒与拖拽问题；<br>引入动态触控拦截。</p><div class="pitfall"><span class="pit-icon">!</span>已通过动态赋予解决吞噬移动事件。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.11</span><span class="v-time">2026.03.14</span></div><span class="tag tag-opt">体验优化</span></div><div class="v-card"><div class="v-title">阅读进度无感记忆</div><p class="v-desc">新增无感防抖记录；<br>实现时光回溯。</p><div class="pitfall"><span class="pit-icon">!</span>解决海量数据下，切换页面导致进度丢失。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.10</span><span class="v-time">2026.03.14</span></div><span class="tag tag-ux">交互升级</span></div><div class="v-card"><div class="v-title">智能悬浮窗重构</div><p class="v-desc">按钮吸附屏幕边缘与半隐藏防遮挡。</p><div class="pitfall"><span class="pit-icon">!</span>采用触控位移阈值判别与CSS分离动画解决冲突。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.9</span><span class="v-time">2026.03.14</span></div><span class="tag tag-opt">体验优化</span></div><div class="v-card"><div class="v-title">验证页视觉与逻辑调优</div><p class="v-desc">精简界面与按钮；<br>新增“重置”开关。</p><div class="pitfall"><span class="pit-icon">!</span>采用纯块级强制绝对居中解决。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.8</span><span class="v-time">2026.03.14</span></div><span class="tag tag-feat">功能新增</span></div><div class="v-card"><div class="v-title">导航重构与秘密通道</div><p class="v-desc">优化排版，统一风格；<br>注入隐藏路由。</p><div class="pitfall"><span class="pit-icon">!</span>普通跳转会破坏安卓底层返回逻辑导致套娃。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.7</span><span class="v-time">2026.03.14</span></div><span class="tag tag-fix">视觉去油</span></div><div class="v-card"><div class="v-title">彩蛋 UI/UX 重构</div><p class="v-desc">重构彩蛋逻辑；<br>增加动效与排版优化。</p><div class="pitfall"><span class="pit-icon">!</span>初始设计过于简陋。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.6</span><span class="v-time">2026.03.14</span></div><span class="tag tag-fix">兼容修复</span></div><div class="v-card"><div class="v-title">交付验收</div><p class="v-desc">全量校验资源路径一致性。</p><div class="pitfall"><span class="pit-icon">!</span>微信传输APK导致浪漫环节翻车。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.5</span><span class="v-time">2026.03.14</span></div><span class="tag tag-fix">Bug修复</span></div><div class="v-card"><div class="v-title">生命周期修复</div><p class="v-desc">监听 Cordova 前后台状态。</p><div class="pitfall"><span class="pit-icon">!</span>退后台音乐不停且音画不同步。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.4</span><span class="v-time">2026.03.14</span></div><span class="tag tag-fix">兼容修复</span></div><div class="v-card"><div class="v-title">交付验收</div><p class="v-desc">明确 APK 交付风险及方案。</p><div class="pitfall"><span class="pit-icon">!</span>避免安装错误。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.3</span><span class="v-time">2026.03.14</span></div><span class="tag tag-fix">细节优化</span></div><div class="v-card"><div class="v-title">体验优化</div><p class="v-desc">自定义 App 名称与图标。</p><div class="pitfall"><span class="pit-icon">!</span>图标路径错误，桌面不显示自定义图。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.2</span><span class="v-time">2026.03.14</span></div><span class="tag tag-fix">兼容修复</span></div><div class="v-card"><div class="v-title">打包修复</div><p class="v-desc">修正打包拼写错误。</p><div class="pitfall"><span class="pit-icon">!</span>打包一直失败。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.1</span><span class="v-time">2026.03.14</span></div><span class="tag tag-fix">Bug修复</span></div><div class="v-card"><div class="v-title">跨域修复</div><p class="v-desc">修复 postMessage 通信失效。</p><div class="pitfall"><span class="pit-icon">!</span>本地文件跨域安全限制严格。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.4.0</span><span class="v-time">2026.03.14</span></div><span class="tag tag-feat">功能新增</span></div><div class="v-card"><div class="v-title">安全设计</div><p class="v-desc">新增开屏验证页陷阱题。</p><div class="pitfall"><span class="pit-icon">!</span>跨域禁止调用父页面音乐。</div></div></div>
+                </div>
+            </div>
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v1.3</div>
+                        <div class="group-meta"> · 包含 10 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.3.9</span><span class="v-time">2026.03.14</span></div><span class="tag tag-fix">细节优化</span></div><div class="v-card"><div class="v-title">转场优化</div><p class="v-desc">优化动画；<br>新增localStorage记忆逻辑。</p><div class="pitfall"><span class="pit-icon">!</span>重复打开重复等待，体验差。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.3.8</span><span class="v-time">2026.03.14</span></div><span class="tag tag-fix">Bug修复</span></div><div class="v-card"><div class="v-title">生命周期修复</div><p class="v-desc">初步尝试修复后台音频播放限制。</p><div class="pitfall"><span class="pit-icon">!</span>退后台音乐不停且音频画面不同步。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.3.7</span><span class="v-time">2026.03.14</span></div><span class="tag tag-arch">逻辑变更</span></div><div class="v-card"><div class="v-title">交互重构</div><p class="v-desc">新增音乐播放器；<br>实现自动/手动切换。</p><div class="pitfall"><span class="pit-icon">!</span>禁止自动播放，需触摸触发。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.3.6</span><span class="v-time">2026.03.13</span></div><span class="tag tag-fix">兼容修复</span></div><div class="v-card"><div class="v-title">适配修复</div><p class="v-desc">适配红米 K70手机，提供模拟器方案。</p><div class="pitfall"><span class="pit-icon">!</span>DPI不匹配界面变形。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.3.5</span><span class="v-time">2026.03.13</span></div><span class="tag tag-opt">功能调整</span></div><div class="v-card"><div class="v-title">加载优化</div><p class="v-desc"> loading 等待压缩至 100ms，聊天秒开。</p><div class="pitfall"><span class="pit-icon">!</span>加载完仍强制等待验证拖沓。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.3.4</span><span class="v-time">2026.03.13</span></div><span class="tag tag-fix">细节优化</span></div><div class="v-card"><div class="v-title">性能优化</div><p class="v-desc">优化跳转提速80%；<br>新增合法性校验。</p><div class="pitfall"><span class="pit-icon">!</span>2.8万条数据跳转卡死。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.3.3</span><span class="v-time">2026.03.13</span></div><span class="tag tag-fix">Bug修复</span></div><div class="v-card"><div class="v-title">性能修复</div><p class="v-desc">滚动卡顿优化分块渲染逻辑。</p><div class="pitfall"><span class="pit-icon">!</span>滚动侦测失效白屏。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.3.2</span><span class="v-time">2026.03.13</span></div><span class="tag tag-fix">核心重构</span></div><div class="v-card"><div class="v-title">体验升级</div><p class="v-desc">全页面视觉净化。</p><div class="pitfall"><span class="pit-icon">!</span>符号大小不统一，微调权重。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.3.1</span><span class="v-time">2026.03.12</span></div><span class="tag tag-opt">功能调整</span></div><div class="v-card"><div class="v-title">交互优化</div><p class="v-desc">相册点击放大弹窗弹性动画背景关闭。</p><div class="pitfall"><span class="pit-icon">!</span>点击穿透修复。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.3.0</span><span class="v-time">2026.03.12</span></div><span class="tag tag-feat">功能新增</span></div><div class="v-card"><div class="v-title">功能拓展</div><p class="v-desc">上线照片墙，适配文字省略。</p><div class="pitfall"><span class="pit-icon">!</span>路径错误导致裂图。</div></div></div>
+                </div>
+            </div>
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v1.2</div>
+                        <div class="group-meta"> · 包含 2 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.2.1</span><span class="v-time">2026.03.12</span></div><span class="tag tag-fix">视觉统一</span></div><div class="v-card"><div class="v-title">核心UI/UX重构</div><p class="v-desc">全页面导航栏渐变。</p><div class="pitfall"><span class="pit-icon">!</span>层级覆盖内容内边距修复。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.2.0</span><span class="v-time">2026.03.12</span></div><span class="tag tag-feat">功能新增</span></div><div class="v-card"><div class="v-title">模块拓展</div><p class="v-desc">新增页面跳转逻辑。</p><div class="pitfall"><span class="pit-icon">!</span>滚动位置丢失。</div></div></div>
+                </div>
+            </div>
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v1.1</div>
+                        <div class="group-meta"> · 包含 2 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.1.1</span><span class="v-time">2026.03.12</span></div><span class="tag tag-opt">体验优化</span></div><div class="v-card"><div class="v-title">小功能调整</div><p class="v-desc">新增聊天记录关键词高亮结果。</p><div class="pitfall"><span class="pit-icon">!</span>匹配逻辑部分词漏搜修复。</div></div></div>
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.1.0</span><span class="v-time">2026.03.12</span></div><span class="tag tag-feat">功能新增</span></div><div class="v-card"><div class="v-title">功能新增</div><p class="v-desc">上线消息渲染加载。</p><div class="pitfall"><span class="pit-icon">!</span>大量数据初始卡顿，渲染加载。</div></div></div>
+                </div>
+            </div>
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v1.0</div>
+                        <div class="group-meta"> · 包含 1 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+                    <div class="node"><div class="v-header"><div class="v-num-box"><span class="v-num">V 1.0.0_alpha</span><span class="v-time">2026.03.12</span></div><span class="tag tag-arch">架构重构</span></div><div class="v-card"><div class="v-title">架构奠基</div><p class="v-desc">数据分离，独立存储支撑。</p><div class="pitfall"><span class="pit-icon">!</span>JSON不兼容，改用HTML。</div></div></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer">© 2026-3-16 weichuyi · 还能更新几次</div>
+    </div>
+
+    <script>
+        // ★ 1. 视锥懒加载引擎：当版本大组滑入屏幕时，才允许显示
+        const groupObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                }
+            });
+        }, { rootMargin: '100px' });
+
+        document.querySelectorAll('.version-group').forEach(group => {
+            groupObserver.observe(group);
+        });
+
+        // ★ 2. 核心黑科技：错峰逐帧渲染引擎 (打散 GPU 瞬间压力)
+        function toggleGroup(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.toggle-icon');
+            const nodes = content.querySelectorAll('.node');
+            
+            if (content.style.display === 'block') {
+                // 收起：重置状态
+                content.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+                nodes.forEach(node => node.classList.remove('show-node'));
+            } else {
+                // 展开：触发错峰渲染
+                content.style.display = 'block';
+                icon.style.transform = 'rotate(180deg)';
+                
+                nodes.forEach((node, index) => {
+                    setTimeout(() => {
+                        node.classList.add('show-node');
+                    }, index * 40); // 每张卡片延迟 40 毫秒出现，制造多米诺骨牌级丝滑感
+                });
+            }
+        }
+
+        // ★ 3. 页面加载完毕后，自动给第一个默认展开的组触发动画
+        window.onload = function() {
+            const firstGroup = document.querySelector('.group-content[style*="display: block"]');
+            if (firstGroup) {
+                const nodes = firstGroup.querySelectorAll('.node');
+                nodes.forEach((node, index) => {
+                    setTimeout(() => {
+                        node.classList.add('show-node');
+                    }, index * 40);
+                });
+            }
+        };
+
+        // 长按彩蛋逻辑
+        let clickCount = 0;
+        let lastClickTime = 0;
+        const appLogo = document.querySelector('.app-logo');
+
+        appLogo.addEventListener('click', function() {
+            if(navigator.vibrate) navigator.vibrate(30);
+            const currentTime = new Date().getTime();
+            if (currentTime - lastClickTime > 1500 || clickCount >= 5) { clickCount = 0; }
+            clickCount++;
+            lastClickTime = currentTime;
+            if (clickCount === 5) {
+                if(navigator.vibrate) navigator.vibrate([50, 50, 100]);
+                triggerEasterEgg();
+                clickCount = 0; 
+            }
+        });
+
+        function triggerEasterEgg() {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0, 0, 0, 0.7); z-index: 10000;
+                display: flex; align-items: center; justify-content: center;
+                animation: fadeIn 0.4s ease;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: #fff; padding: 30px; border-radius: 24px;
+                    width: 80%; max-width: 300px; text-align: center;
+                    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+                    animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    box-sizing: border-box;
+                ">
+                    <div style="margin-bottom: 15px;">
+                        <img src="icon/egg.png" alt="彩蛋" style="width: 65px; height: 65px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));">
+                    </div>
+                    <h2 style="margin: 0 0 10px 0; font-size: 18px; color: #111; font-weight:900;">这是一个彩蛋</h2>
+                    <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 0; font-weight:bold;">
+                        截至2026年3月16日 开发耗时36h+<br>
+                    </p>
+                    <button onclick="this.parentElement.parentElement.remove()" style="
+                        margin-top: 25px; padding: 10px 45px; border: none;
+                        background: #111; color: white; border-radius: 12px; font-weight: bold;
+                        font-size: 14px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                    ">收到</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+    </script>
+</body>
+</html>

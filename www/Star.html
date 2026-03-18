@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Star</title>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        ::-webkit-scrollbar { display: none; width: 0; height: 0; color: transparent; }
+        html, body { -ms-overflow-style: none; scrollbar-width: none; }
+
+        :root { --bg: #fff9f5; --card: #ffffff; --text-dark: #111111; --text-light: #555555; --radius: 20px; }
+
+        body, html { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, "PingFang SC", sans-serif; color: var(--text-dark); overflow-x: hidden; overscroll-behavior: none; padding-bottom: 20px; }
+
+        .header {
+            background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border-bottom: 2px solid rgba(0, 0, 0, 0.8); border-left: 1.5px solid rgba(0, 0, 0, 0.15); border-right: 1.5px solid rgba(0, 0, 0, 0.15); border-top: none;
+            border-radius: 0 0 24px 24px; padding: calc(12px + env(safe-area-inset-top)) 16px 12px 16px;
+            display: flex; align-items: center; position: fixed; top: 0; left: 0; width: 100%; box-sizing: border-box; z-index: 999; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .back-btn { color: #111; text-decoration: none; font-size: 20px; font-weight: 900; margin-right: 15px; padding-right: 10px; }
+        .title-box { flex: 1; display: flex; flex-direction: row; align-items: baseline; gap: 8px; }
+        .title { color: #111; font-size: 18px; margin: 0; font-weight: 900; letter-spacing: 1px;}
+        .sub-title { font-size: 11px; color: #555; font-weight: bold; }
+        .manage-btn { color: #111; font-size: 15px; font-weight: 900; cursor: pointer; padding: 5px; }
+
+        .container { padding: calc(80px + env(safe-area-inset-top)) 15px calc(60px + env(safe-area-inset-bottom)) 15px; display: flex; flex-direction: column; gap: 15px; transition: padding-bottom 0.3s; }
+        .container.edit-mode { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+
+        .card-row { display: flex; align-items: stretch; margin-bottom: 5px; position: relative; animation: slideUp 0.4s ease-out backwards; transition: all 0.3s ease; }
+        .card-row.removing { transform: scale(0.9); opacity: 0; pointer-events: none; }
+
+        .check-wrap { width: 0; overflow: hidden; display: flex; align-items: center; transition: width 0.3s ease, padding 0.3s ease; opacity: 0; }
+        .edit-mode .check-wrap { width: 35px; opacity: 1; padding-right: 10px; }
+
+        .check-circle { width: 22px; height: 22px; border: 2px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-sizing: border-box; flex-shrink: 0; }
+        .card-row.selected .check-circle { background: #111; border-color: #111; }
+        .card-row.selected .check-circle::after { content: '✓'; color: white; font-size: 14px; font-weight: bold; }
+
+        .fav-card { 
+            flex: 1; min-width: 0; background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); 
+            border: 1.5px solid #111; border-radius: var(--radius); padding: 20px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05); 
+            position: relative; transition: all 0.3s ease; 
+            cursor: default; /* ★ 默认不给点击反馈 */
+        }
+        
+        /* ★ 只有系统测算后加入 is-expandable 类，才允许点击 */
+        .fav-card.is-expandable { cursor: pointer; }
+        .edit-mode .fav-card { cursor: default; }
+        
+        .fav-card.pinned { border: 2px solid #ff7e5f; background: linear-gradient(135deg, rgba(255, 245, 240, 0.9) 0%, rgba(255, 255, 255, 0.8) 100%); box-shadow: 0 8px 25px rgba(255, 126, 95, 0.2); transform: scale(1.02); z-index: 10; }
+        .fav-card.pinned::before { content: '🌸'; position: absolute; top: -14px; left: -12px; font-size: 26px; filter: drop-shadow(0 4px 8px rgba(255, 126, 95, 0.3)); transform: rotate(-15deg); z-index: 20; pointer-events: none; }
+        .fav-card.pinned::after { content: '✨'; position: absolute; bottom: -10px; right: -8px; font-size: 20px; filter: drop-shadow(0 2px 5px rgba(255, 126, 95, 0.4)); transform: rotate(15deg); z-index: 20; pointer-events: none; }
+
+        .fav-header { display: flex; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed rgba(0,0,0,0.1); padding-bottom: 8px; gap: 6px; flex-wrap: nowrap; }
+        
+        .fav-sender { font-weight: 900; color: #111; font-size: 14px; display: inline-block; width: auto; min-width: 55px; flex-shrink: 0; }
+        .fav-card.pinned .fav-sender { color: #ff7e5f; } 
+        
+        .fav-time { font-size: 11px; color: var(--text-light); font-weight: bold; flex-shrink: 0; }
+        
+        /* ★ 展开指示器：默认隐藏，只有需要的才显示 */
+        .expand-icon { margin-left: auto; font-size: 10px; color: #a8a8a8; transition: transform 0.3s; font-weight: 900; display: none; }
+        .fav-card.is-expandable .expand-icon { display: block; }
+        .fav-card.expanded .expand-icon { transform: rotate(180deg); color: #111; }
+        .edit-mode .expand-icon { display: none !important; }
+
+        .action-btns { margin-left: auto; display: none; gap: 5px; opacity: 0; transition: opacity 0.3s; flex-wrap: nowrap; flex-shrink: 0; align-items: center; }
+        .edit-mode .action-btns { display: flex; opacity: 1; }
+
+        .pin-btn { font-size: 11px; color: #111; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 8px; cursor: pointer; transition: background 0.2s; font-weight: bold; white-space: nowrap; flex-shrink: 0; }
+        .pin-btn:active { background: rgba(0,0,0,0.1); }
+        .fav-card.pinned .pin-btn { background: #ffe4e1; color: #ff7e5f; border-color: #ffb6b9; }
+
+        .delete-btn { font-size: 11px; color: white; background: #111; padding: 4px 8px; border-radius: 8px; cursor: pointer; transition: background 0.2s; font-weight: bold; white-space: nowrap; flex-shrink: 0; }
+        .delete-btn:active { opacity: 0.8; }
+
+        .fav-content { font-size: 15px; color: var(--text-dark); font-weight: 500; }
+
+        .text-preview {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-dark);
+            height: 38px;           
+            line-height: 38px;      
+            transition: opacity 0.3s;
+        }
+        
+        .text-full { display: none; line-height: 1.6; }
+        .text-full img { max-width: 100%; border-radius: 14px; margin-top: 8px; }
+        .fav-card.expanded .text-preview { display: none; }
+        .fav-card.expanded .text-full { display: block; animation: fadeIn 0.3s ease; }
+
+        .audio-preview { 
+            height: 38px; 
+            display: flex; 
+            align-items: center; 
+        }
+        
+        .audio-full-text { display: none; margin-top: 10px; color: #666; font-size: 14px; border-top: 1px dashed rgba(0,0,0,0.05); padding-top: 8px;}
+        .fav-card.expanded .audio-full-text { display: block; animation: fadeIn 0.3s ease; }
+
+        .custom-audio-player {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: #ffffff; border: 1.5px solid #111;
+            padding: 0 14px 0 6px; border-radius: 25px; 
+            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: all 0.2s; margin: 0; min-width: 90px;
+            height: 38px; box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        .custom-audio-player:active { transform: scale(0.96); background: #f9f9f9; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .custom-audio-icon { width: 26px; height: 26px; background: #111; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; padding-left: 2px; box-sizing: border-box; transition: all 0.2s; flex-shrink: 0; }
+        .custom-audio-player.playing .custom-audio-icon { padding-left: 0; }
+        .voice-waves { display: flex; gap: 3px; align-items: center; height: 16px; flex-shrink: 0; }
+        .wave { width: 3px; background: #111; border-radius: 2px; height: 4px; transition: height 0.2s; }
+        .custom-audio-player.playing .wave { animation: soundWave 0.8s ease-in-out infinite alternate; }
+        .custom-audio-player.playing .wave:nth-child(1) { animation-delay: 0.0s; }
+        .custom-audio-player.playing .wave:nth-child(2) { animation-delay: 0.2s; }
+        .custom-audio-player.playing .wave:nth-child(3) { animation-delay: 0.4s; }
+        .custom-audio-player.playing .wave:nth-child(4) { animation-delay: 0.1s; }
+        .custom-audio-player.playing .wave:nth-child(5) { animation-delay: 0.3s; }
+        @keyframes soundWave { 0% { height: 4px; } 100% { height: 16px; } }
+        .custom-audio-duration { font-size: 13px; font-weight: 900; color: #111; margin-left: auto; font-family: Courier, monospace;}
+
+        .empty-state { text-align: center; margin-top: 100px; color: var(--text-light); font-weight: bold; }
+        .empty-icon { font-size: 50px; margin-bottom: 15px; opacity: 0.8; filter: grayscale(100%); }
+
+        .bottom-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border-top: 1px solid rgba(0,0,0,0.08); padding: 15px 25px calc(15px + env(safe-area-inset-bottom)) 25px; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1); z-index: 200; box-sizing: border-box; }
+        .bottom-bar.show { transform: translateY(0); }
+        .select-all-btn { color: var(--text-dark); font-size: 15px; cursor: pointer; font-weight: 900; }
+        .delete-batch-btn { background: #111; color: white; border: none; padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: bold; transition: all 0.2s; }
+        .delete-batch-btn:disabled { background: #ccc; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .toast { 
+            position: fixed; 
+            bottom: calc(25px + env(safe-area-inset-bottom)); 
+            left: 50%; 
+            transform: translateX(-50%) translateY(100px); 
+            background: #111;
+            color: #fff; 
+            padding: 6px 10px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            display: flex; 
+            align-items: center; 
+            gap: 2px; 
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15); 
+            transition: transform 0.3s ease-out, opacity 0.3s; 
+            z-index: 1000; 
+            opacity: 0; 
+            pointer-events: none; 
+            white-space: nowrap;
+        }
+        .edit-mode ~ .toast.show { transform: translateX(-50%) translateY(-75px); }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+        .toast-undo { 
+            color: #ff7e5f; 
+            font-weight: 600; 
+            cursor: pointer; 
+            padding: 0; 
+            background: transparent; 
+            border-radius: 0; 
+            font-size: 12px;
+            transition: all 0.15s;
+            margin-left: 0;
+        }
+        .toast-undo:active { background: rgba(255, 126, 95, 0.1); transform: scale(0.95); }
+    </style>
+</head>
+<body>
+    <div class="header">
+	
+	
+        <a href="javascript:void(0)" onclick="history.back()" class="back-btn">←</a>
+		
+		
+        <div class="title-box">
+            <h1 class="title">星标拾遗</h1>
+            <span class="sub-title" id="star-stat">正在读取...</span>
+        </div>
+        <span class="manage-btn" id="manage-btn" onclick="toggleEditMode()">管理</span>
+    </div>
+
+    <div class="container" id="fav-list"></div>
+
+    <div class="bottom-bar" id="bottom-bar">
+        <span class="select-all-btn" id="select-all-btn" onclick="toggleSelectAll()">全选</span>
+        <button class="delete-batch-btn" id="delete-batch-btn" onclick="batchDelete()">删除 (0)</button>
+    </div>
+
+    <div class="toast" id="undo-toast">
+        <span id="toast-msg">已删除</span>
+        <span class="toast-undo" onclick="undoDelete()">撤销</span>
+    </div>
+
+    <script>
+        const favList = document.getElementById('fav-list');
+        const bottomBar = document.getElementById('bottom-bar');
+        const manageBtn = document.getElementById('manage-btn');
+        const toast = document.getElementById('undo-toast');
+        const toastMsg = document.getElementById('toast-msg');
+        let favs = JSON.parse(localStorage.getItem('chat_favs') || '[]');
+        let isEditMode = false;
+        let selectedIds = new Set();
+        let currentDeletedItems = []; 
+        let toastTimeout = null;
+
+        const globalAudio = new Audio();
+        let currentPlayingBtn = null;
+
+        const audioDurationObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const btn = entry.target;
+                    const src = btn.getAttribute('data-src');
+                    if (src && !btn.dataset.durationLoaded) {
+                        btn.dataset.durationLoaded = 'true';
+                        const tempAudio = new Audio(src);
+                        tempAudio.addEventListener('loadedmetadata', () => {
+                            const secs = Math.round(tempAudio.duration);
+                            if(!isNaN(secs)) {
+                                btn.querySelector('.custom-audio-duration').innerText = secs + '"';
+                                btn.dataset.totalTime = secs; 
+                            }
+                        });
+                        observer.unobserve(btn); 
+                    }
+                }
+            });
+        }, { rootMargin: '200px' }); 
+
+        globalAudio.onended = () => {
+            if (currentPlayingBtn) {
+                currentPlayingBtn.classList.remove('playing');
+                currentPlayingBtn.querySelector('.custom-audio-icon').innerText = '▶';
+                currentPlayingBtn.querySelector('.custom-audio-icon').style.paddingLeft = '2px';
+                if(currentPlayingBtn.dataset.totalTime) {
+                    currentPlayingBtn.querySelector('.custom-audio-duration').innerText = currentPlayingBtn.dataset.totalTime + '"';
+                }
+                currentPlayingBtn = null;
+            }
+        };
+
+        globalAudio.addEventListener('timeupdate', () => {
+            if (currentPlayingBtn && !globalAudio.paused && globalAudio.duration) {
+                const current = Math.floor(globalAudio.currentTime);
+                const total = Math.floor(globalAudio.duration);
+                if(!isNaN(total)) {
+                    currentPlayingBtn.querySelector('.custom-audio-duration').innerText = `${current}" / ${total}"`;
+                }
+            }
+        });
+
+        window.playCustomAudio = function(src, btnElement, event) {
+            if(event) event.stopPropagation(); 
+            if (currentPlayingBtn === btnElement) {
+                if (!globalAudio.paused) {
+                    globalAudio.pause();
+                    btnElement.classList.remove('playing');
+                    btnElement.querySelector('.custom-audio-icon').innerText = '▶';
+                    btnElement.querySelector('.custom-audio-icon').style.paddingLeft = '2px';
+                    if(btnElement.dataset.totalTime) {
+                        btnElement.querySelector('.custom-audio-duration').innerText = btnElement.dataset.totalTime + '"';
+                    }
+                } else {
+                    globalAudio.play();
+                    btnElement.classList.add('playing');
+                    btnElement.querySelector('.custom-audio-icon').innerText = '⏸';
+                    btnElement.querySelector('.custom-audio-icon').style.paddingLeft = '0';
+                    if(window.navigator.vibrate) window.navigator.vibrate(20);
+                    try { window.parent.postMessage('pauseBGM', '*'); } catch(e) {}
+                }
+            } else {
+                if (currentPlayingBtn) {
+                    currentPlayingBtn.classList.remove('playing');
+                    currentPlayingBtn.querySelector('.custom-audio-icon').innerText = '▶';
+                    currentPlayingBtn.querySelector('.custom-audio-icon').style.paddingLeft = '2px';
+                    if(currentPlayingBtn.dataset.totalTime) {
+                        currentPlayingBtn.querySelector('.custom-audio-duration').innerText = currentPlayingBtn.dataset.totalTime + '"';
+                    }
+                }
+                globalAudio.src = src; globalAudio.play();
+                btnElement.classList.add('playing');
+                btnElement.querySelector('.custom-audio-icon').innerText = '⏸';
+                btnElement.querySelector('.custom-audio-icon').style.paddingLeft = '0';
+                currentPlayingBtn = btnElement;
+                if(window.navigator.vibrate) window.navigator.vibrate([20, 30]);
+                try { window.parent.postMessage('pauseBGM', '*'); } catch(e) {}
+            }
+        };
+
+        function updateStat() {
+            const statEl = document.getElementById('star-stat');
+            if (statEl) { statEl.innerText = `共收藏了 ${favs.length} 句`; }
+        }
+
+        function renderList() {
+            updateStat(); 
+            if (favs.length === 0) {
+                manageBtn.style.display = 'none'; 
+                if(isEditMode) toggleEditMode();  
+                favList.innerHTML = `<div class="empty-state"><div class="empty-icon">⭐</div><div>还没有收藏哦<br>快去聊天记录里双击那些闪光的句子吧</div></div>`;
+                return;
+            }
+            manageBtn.style.display = 'block';
+
+            favs.sort((a, b) => {
+                const aPin = a.pinned ? 1 : 0; const bPin = b.pinned ? 1 : 0;
+                if (aPin !== bPin) return bPin - aPin; return b.t - a.t;
+            });
+
+            let html = '';
+            favs.forEach((item, index) => {
+                const dateObj = new Date(item.t * 1000);
+                const timeStr = dateObj.getFullYear() + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(dateObj.getDate()).padStart(2, '0') + ' ' + String(dateObj.getHours()).padStart(2, '0') + ':' + String(dateObj.getMinutes()).padStart(2, '0');
+                
+                const baseName = (item.s === 1) ? '我' : '她';
+                const pinHtml = item.pinned ? '<span style="margin-right: 6px; font-size: 12px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">📌</span>' : '';
+                
+                const pinText = item.pinned ? '取消' : '置顶';
+                const pinClass = item.pinned ? 'pinned' : '';
+                const isSelected = selectedIds.has(item.i);
+                const selectedClass = isSelected ? 'selected' : '';
+
+                let cleanContent = item.b.replace(/\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(?:<br\s*\/?>|\n|\r|\s)*/g, '');
+                const hasAudio = /<audio/i.test(cleanContent);
+                let finalContentHtml = '';
+
+                if (hasAudio) {
+                    let srcMatch = cleanContent.match(/<audio[^>]*src=['"]([^'"]+)['"][^>]*>/i);
+                    let src = srcMatch ? srcMatch[1] : '';
+                    let textPart = cleanContent.replace(/<audio[^>]*>.*?<\/audio>|<audio[^>]*>/gi, '').trim();
+                    
+                    finalContentHtml = `
+                        <div class="audio-preview">
+                            <div class="custom-audio-player lazy-audio" data-src="${src}" onclick="playCustomAudio('${src}', this, event)">
+                                <div class="custom-audio-icon">▶</div>
+                                <div class="voice-waves">
+                                    <div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div>
+                                </div>
+                                <span class="custom-audio-duration">...</span>
+                            </div>
+                        </div>
+                        ${textPart ? `<div class="audio-full-text">${textPart}</div>` : ''}
+                    `;
+                } else {
+                    let previewText = cleanContent.replace(/<img[^>]*>/gi, '[图片/表情]').replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '');
+                    finalContentHtml = `
+                        <div class="text-preview">${previewText}</div>
+                        <div class="text-full">${cleanContent}</div>
+                    `;
+                }
+
+                html += `
+                    <div class="card-row ${selectedClass}" id="row-${item.i}" onclick="handleRowClick('${item.i}', event)" style="animation-delay: ${index * 0.05}s">
+                        <div class="check-wrap"><div class="check-circle"></div></div>
+                        <div class="fav-card ${pinClass}">
+                            <div class="fav-header">
+                                <span class="fav-sender">${baseName}</span>
+                                ${pinHtml}
+                                <span class="fav-time">${timeStr}</span>
+                                <div class="expand-icon">▼</div>
+                                <div class="action-btns">
+                                    <span class="pin-btn" onclick="togglePin('${item.i}', event)">${pinText}</span>
+                                    <span class="delete-btn" onclick="triggerDelete('${item.i}', this, event)">删除</span>
+                                </div>
+                            </div>
+                            <div class="fav-content">${finalContentHtml}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            favList.innerHTML = html;
+            
+            // ★ 核心修复：智能计算哪些卡片需要被折叠
+            document.querySelectorAll('.card-row').forEach(row => {
+                const card = row.querySelector('.fav-card');
+                
+                // 1. 如果是语音消息：只要有附属文字，就赋予可展开权限
+                const audioPreview = card.querySelector('.audio-preview');
+                if (audioPreview) {
+                    const fullText = card.querySelector('.audio-full-text');
+                    if (fullText) card.classList.add('is-expandable');
+                    return;
+                }
+                
+                // 2. 如果是文字消息：
+                const textPreview = card.querySelector('.text-preview');
+                const textFull = card.querySelector('.text-full');
+                if (textPreview && textFull) {
+                    const hasImg = /<img/i.test(textFull.innerHTML);
+                    const hasBr = /<br/i.test(textFull.innerHTML);
+                    
+                    // 核心算法：通过对比真实物理渲染宽度（scrollWidth）和卡片内部容器宽度（clientWidth）
+                    // 只要 scrollWidth 大于 clientWidth，就说明文字被单行截断了，需要展开！
+                    if (hasImg || hasBr || textPreview.scrollWidth > textPreview.clientWidth + 1) {
+                        card.classList.add('is-expandable');
+                    }
+                }
+            });
+            
+            // 绑定懒加载
+            document.querySelectorAll('.lazy-audio:not(.observing)').forEach(el => {
+                el.classList.add('observing');
+                audioDurationObserver.observe(el);
+            });
+
+            updateBottomBar();
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode; selectedIds.clear();
+            if(isEditMode) { document.querySelectorAll('.fav-card.expanded').forEach(card => card.classList.remove('expanded')); }
+            if (isEditMode) { favList.classList.add('edit-mode'); bottomBar.classList.add('show'); manageBtn.innerText = '完成'; } 
+            else { favList.classList.remove('edit-mode'); bottomBar.classList.remove('show'); manageBtn.innerText = '管理'; }
+            document.querySelectorAll('.card-row').forEach(row => { row.classList.remove('selected'); });
+            updateBottomBar();
+        }
+
+        function handleRowClick(id, event) {
+            if (event.target.closest('.action-btns') || event.target.closest('.custom-audio-player') || event.target.tagName.toLowerCase() === 'img') return;
+            if (!isEditMode) {
+                const card = document.querySelector(`#row-${id} .fav-card`);
+                // ★ 只有系统测算后拥有 is-expandable 类名的卡片，才允许点击折叠
+                if (card && card.classList.contains('is-expandable')) { 
+                    card.classList.toggle('expanded'); 
+                    if(window.navigator.vibrate) window.navigator.vibrate(10); 
+                }
+                return; 
+            }
+            if (selectedIds.has(id)) { selectedIds.delete(id); } else { selectedIds.add(id); }
+            const row = document.getElementById(`row-${id}`);
+            if (selectedIds.has(id)) row.classList.add('selected'); else row.classList.remove('selected');
+            updateBottomBar();
+        }
+
+        function toggleSelectAll() {
+            if (selectedIds.size === favs.length) { selectedIds.clear(); document.querySelectorAll('.card-row').forEach(row => row.classList.remove('selected')); } 
+            else { favs.forEach(f => selectedIds.add(f.i)); document.querySelectorAll('.card-row').forEach(row => row.classList.add('selected')); }
+            updateBottomBar();
+        }
+
+        function updateBottomBar() {
+            const btn = document.getElementById('delete-batch-btn'); const selectAllBtn = document.getElementById('select-all-btn');
+            btn.innerText = `删除 (${selectedIds.size})`; btn.disabled = selectedIds.size === 0;
+            if (selectedIds.size === favs.length && favs.length > 0) { selectAllBtn.innerText = '取消全选'; } else { selectAllBtn.innerText = '全选'; }
+        }
+
+        function togglePin(id, event) {
+            event.stopPropagation(); const index = favs.findIndex(f => f.i == id); if(index === -1) return;
+            favs[index].pinned = !favs[index].pinned; localStorage.setItem('chat_favs', JSON.stringify(favs));
+            const currentScrollY = window.scrollY; renderList(); window.scrollTo(0, currentScrollY);
+        }
+
+        function triggerDelete(id, btnElement, event) {
+            event.stopPropagation(); const index = favs.findIndex(f => String(f.i) === String(id)); if(index === -1) return;
+            currentDeletedItems = [favs[index]]; favs.splice(index, 1); localStorage.setItem('chat_favs', JSON.stringify(favs)); updateStat();
+            const row = document.getElementById(`row-${id}`); if(row) row.classList.add('removing');
+            showToast('已删除');
+            setTimeout(() => { if(row && row.parentNode) row.remove(); if (favs.length === 0) renderList(); }, 300);
+        }
+
+        function batchDelete() {
+            if (selectedIds.size === 0) return;
+            currentDeletedItems = favs.filter(f => selectedIds.has(String(f.i))); favs = favs.filter(f => !selectedIds.has(String(f.i)));
+            localStorage.setItem('chat_favs', JSON.stringify(favs)); updateStat(); 
+            const idsToRemove = Array.from(selectedIds);
+            idsToRemove.forEach(id => { const row = document.getElementById(`row-${id}`); if(row) row.classList.add('removing'); });
+            const deletedCount = idsToRemove.length; showToast('已删除'); toggleEditMode(); 
+            setTimeout(() => { idsToRemove.forEach(id => { const row = document.getElementById(`row-${id}`); if(row && row.parentNode) row.remove(); }); if (favs.length === 0) { renderList(); } }, 300);
+        }
+
+        function showToast(msg) {
+            toastMsg.innerText = msg; toast.classList.add('show'); if(toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => { toast.classList.remove('show'); currentDeletedItems = []; }, 4000);
+        }
+
+        function undoDelete() {
+            if(currentDeletedItems.length === 0) return;
+            favs.push(...currentDeletedItems); localStorage.setItem('chat_favs', JSON.stringify(favs)); updateStat(); 
+            toast.classList.remove('show'); if(toastTimeout) clearTimeout(toastTimeout); currentDeletedItems = [];
+            const currentScrollY = window.scrollY; renderList(); window.scrollTo(0, currentScrollY);
+        }
+
+        renderList();
+        window.history.pushState(null, null, window.location.href);
+        window.addEventListener('popstate', function () { window.location.replace('menu.html'); });
+    </script>
+</body>
+</html>

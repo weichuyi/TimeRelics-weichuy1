@@ -1,0 +1,28 @@
+{
+  "prepare_queue": {
+    "installed": [],
+    "uninstalled": []
+  },
+  "config_munge": {
+    "files": {}
+  },
+  "installed_plugins": {
+    "cordova-plugin-statusbar": {
+      "PACKAGE_NAME": "com.weichuyi.hu"
+    },
+    "cordova-plugin-vibration": {
+      "PACKAGE_NAME": "com.weichuyi.hu"
+    },
+    "cordova-plugin-file": {
+      "ANDROIDX_WEBKIT_VERSION": "1.4.0",
+      "PACKAGE_NAME": "com.weichuyi.hu"
+    },
+    "cordova-plugin-file-transfer": {
+      "PACKAGE_NAME": "com.weichuyi.hu"
+    },
+    "cordova-plugin-zip": {
+      "PACKAGE_NAME": "com.weichuyi.hu"
+    }
+  },
+  "dependent_plugins": {}
+}
