@@ -1,24 +1,24 @@
 # 时光拾遗-weichuyi
 
-## 页面说明
+## 页面说明（首次使用务必阅读完整）
 本项目的主要前端页面位于 `www/` 目录，各页面职责如下（按文件名）：
 - `www/index.html`：应用入口页。负责加载 `cordova.js`、初始化全局 UI，并作为主容器加载后续页面。
-- `www/login.html`：登录/进入页。负责首次进入时的引导、登录或进入按钮逻辑，并跳转到主菜单页。
+- `www/login.html`：登录/进入页。负责首次进入时的引导、登录或进入按钮逻辑，并跳转到主菜单页。（首次登陆请点击“不知道”）
 - `www/menu.html`：主菜单/导航页。提供进入各功能模块的入口。
-- `www/OurStory.html`：故事/回忆主内容页。用于展示核心图文内容与互动内容。
-- `www/Star.html`：星空/氛围页。通常包含动画或视觉特效，作为纪念/氛围模块。
-- `www/Radio.html`：电台/音频页。用于播放或管理音频内容，并与全局背景音乐逻辑配合。
-- `www/Food.html`：美食/清单页。用于展示美食相关内容。
-- `www/Report.html`：报告/总结页。用于展示汇总信息、统计或生成式内容。
-- `www/About.html`：关于页。用于展示应用介绍、致谢、说明、联系方式等。
+- `www/OurStory.html`：聊天记录主内容页。用于展示核心图文内容与互动内容。
+- `www/Star.html`：收藏页。用于用户聊天记录与语言的收藏。
+- `www/Radio.html`：电台/音频页。用于播放或管理音频内容，并与全局背景音乐逻辑配合（全局音乐存于icon目录bgm.mp3）。
+- `www/Food.html`：美食/清单页。用于展示吃过的饭。
+- `www/Report.html`：报告/总结页。用于展示汇总聊天记录年度报告。
+- `www/About.html`：关于页。用于展示应用更新日志。
 
 ## www 目录的其他资源
 
 - `www/avatars/`：头像资源。
-- `www/icon/`：图标资源。
+- `www/icon/`：图标资源，美食照片，背景音乐。
 - `www/media/`：多媒体资源（图片/音频等）。
 - `www/chatData.js`：页面使用的静态数据或配置（这里存放聊天记录）。
-- `www/wechat.jpg`：这个是聊天记录页面的背景。
+- `www/wechat.jpg`：这个是聊天记录页面（OurStory.html）的背景。
 
 ## 主要工具与技术栈
 
@@ -28,13 +28,13 @@
 - **Visual Studio Code**：后期主要开发编辑器，用于页面结构整理、脚本维护与项目管理。
 
 ### 移动端构建与打包
-- **Android Studio**：用于 Android 端构建、调试与打包发布（配合 Gradle/Android SDK）。
+- **Android Studio**：用于 Android 端构建、调试与打包发布（配合 Gradle/Android SDK）（多次为红米K70优化UI，部分机型可能因屏幕尺寸导致显示异常）。
 - **Cordova WebView 运行方式**：页面运行在 Android WebView 容器中，通过打包生成 APK。
 
 ### AI 辅助工具
-- **Google Gemini 3**：项目前期用于灵感、文案与结构建议等辅助。
+- **Google Gemini 3**：项目前期用于框架、美化与结构建议等辅助。
 - **GitHub Copilot**：后期主要用于代码补全、重构建议与快速生成脚本片段。
-- **ChatGPT 5.2**：后期辅助排错、方案设计与局部代码生成/优化。
+- **ChatGPT 5.2**：后期辅助排错与局部代码生成/优化。
 - 
 ## 写给随笔
 
