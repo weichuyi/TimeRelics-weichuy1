@@ -83,16 +83,36 @@ html, body {
   top: calc(72px + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
-  padding: 4px 10px;
-  background: rgba(255,255,255,0.86);
-  border-radius: 12px;
-  font-size: 12px;
-  color: #444;
+    padding: 7px 14px 7px 30px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.94), rgba(255, 240, 231, 0.9));
+    border-radius: 999px;
+    font-size: 12px;
+    color: #2f2a26;
   z-index: 101;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-  pointer-events: none;
+    box-shadow: 0 10px 22px rgba(0,0,0,0.12);
+    border: 1px solid rgba(255,255,255,0.72);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    pointer-events: auto;
+    cursor: pointer;
   opacity: 1;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+    transition: opacity 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.sticky-date::before {
+    content: '✦';
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-52%);
+    font-size: 11px;
+    color: #db7b56;
+}
+
+.sticky-date:active {
+    box-shadow: 0 6px 14px rgba(0,0,0,0.1);
 }
 
 .sticky-date.hidden {
@@ -178,7 +198,13 @@ html, body {
 }
 .message.sent .bubble { background: var(--sent) !important; border-color: rgba(255, 255, 255, 0.4) !important; }
 
-.message-text { -webkit-user-select: text; user-select: text; }
+.message-text,
+.bubble,
+.bubble * {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+}
 .message-link-card { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
 .inline-emoji { width: 22px; height: 22px; vertical-align: text-bottom; margin: 0 2px; }
 
@@ -268,6 +294,573 @@ html, body {
 .intro-overlay.active .intro-box { transform: translateY(0); }
 .intro-box h2 { color: #111 !important; font-weight: 900 !important; }
 
+.date-panel-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10008;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    background:
+        radial-gradient(circle at top, rgba(255, 216, 194, 0.38), transparent 32%),
+        rgba(17, 17, 17, 0.28);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+}
+
+.date-panel-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.date-panel {
+    --action-btn-width: 86px;
+    --action-btn-height: 38px;
+    width: min(100%, 392px);
+    max-height: min(90vh, 780px);
+    border-radius: 30px;
+    padding: 16px 16px 14px;
+    box-sizing: border-box;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,246,240,0.95));
+    border: 1px solid rgba(255,255,255,0.92);
+    box-shadow: 0 28px 68px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.5);
+    transform: translateY(28px) scale(0.97);
+    transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+    overflow-y: auto;
+}
+
+.date-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 108px;
+    background:
+        radial-gradient(circle at top left, rgba(222, 124, 78, 0.2), transparent 58%),
+        radial-gradient(circle at top right, rgba(255, 208, 186, 0.16), transparent 62%);
+    pointer-events: none;
+}
+
+.date-panel-overlay.active .date-panel {
+    transform: translateY(0) scale(1);
+}
+
+.date-panel-top,
+.date-panel-footer,
+.calendar-toolbar,
+.date-shortcuts {
+    position: relative;
+    z-index: 1;
+}
+
+.date-panel-top {
+    display: none;
+}
+
+.date-panel-badge {
+    display: none;
+}
+
+.date-panel-close,
+.calendar-nav,
+.shortcut-chip,
+.calendar-confirm {
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    cursor: pointer;
+}
+
+.date-panel-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(17,17,17,0.06);
+    color: #111;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.date-panel-hero {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 12px;
+    padding-right: 40px;
+}
+
+.date-panel-title {
+    font-size: 18px;
+    font-weight: 900;
+    color: #111;
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+
+.date-panel-subtitle {
+    font-size: 11px;
+    line-height: 1.6;
+    color: #665b54;
+    font-weight: 700;
+}
+
+.calendar-keyword-bar {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.5);
+    box-shadow: inset 0 0 0 1px rgba(17,17,17,0.05);
+}
+
+.calendar-keyword-input {
+    flex: 1;
+    height: var(--action-btn-height);
+    border-radius: 11px;
+    border: 1px solid rgba(17,17,17,0.1);
+    background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(247,244,241,0.95));
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #2d221d;
+    outline: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.45);
+}
+
+.calendar-keyword-input:focus {
+    border-color: rgba(177, 94, 62, 0.45);
+    box-shadow: 0 0 0 2px rgba(219, 123, 86, 0.14), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+.calendar-keyword-btn {
+    height: var(--action-btn-height);
+    width: var(--action-btn-width);
+    border-radius: 11px;
+    border: none;
+    background: linear-gradient(135deg, #1c1512, #4d372c);
+    color: #fff7f2;
+    font-size: 13px;
+    font-weight: 900;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 10px 18px rgba(17,17,17,0.18);
+}
+
+.calendar-keyword-btn:active {
+    transform: translateY(1px);
+}
+
+.calendar-shell {
+    position: relative;
+    z-index: 1;
+    border-radius: 22px;
+    padding: 10px;
+    background: rgba(255,255,255,0.68);
+    box-shadow: inset 0 0 0 1px rgba(17,17,17,0.06), 0 8px 18px rgba(0,0,0,0.05);
+}
+
+.calendar-select-wrap {
+    position: relative;
+    width: min(100%, 162px);
+    min-width: 0;
+}
+
+.calendar-select-wrap.year {
+    width: min(100%, 112px);
+}
+
+.calendar-select-wrap.month {
+    width: min(100%, 92px);
+}
+
+.calendar-picker-trigger {
+    width: 100%;
+    height: 34px;
+    padding: 0 26px 0 10px;
+    border-radius: 11px;
+    border: 1px solid rgba(17,17,17,0.1);
+    background: linear-gradient(180deg, rgba(255,255,255,0.93), rgba(247,244,241,0.95));
+    color: #2d221d;
+    font-size: 12px;
+    font-weight: 800;
+    outline: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.45);
+    text-align: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.calendar-picker-trigger::after {
+    content: '▾';
+    position: absolute;
+    right: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: #8b6756;
+    pointer-events: none;
+}
+
+.calendar-picker-trigger:focus,
+.calendar-select-wrap.open .calendar-picker-trigger {
+    border-color: rgba(177, 94, 62, 0.45);
+    box-shadow: 0 0 0 2px rgba(219, 123, 86, 0.14), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+.calendar-picker-trigger:active {
+    transform: scale(0.98);
+}
+
+.calendar-picker-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 100%;
+    max-height: 196px;
+    overflow-y: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(17,17,17,0.08);
+    background: rgba(255,255,255,0.97);
+    box-shadow: 0 16px 26px rgba(0,0,0,0.16);
+    z-index: 15;
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.calendar-select-wrap.open .calendar-picker-menu {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.calendar-picker-option {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    color: #2d221d;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 10px 8px;
+    cursor: pointer;
+}
+
+.calendar-picker-option.active {
+    background: linear-gradient(135deg, #2f221c, #594033);
+    color: #fff5ef;
+}
+
+.calendar-picker-option:not(.active):active {
+    background: rgba(219, 123, 86, 0.12);
+}
+
+.calendar-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 10px;
+}
+
+.calendar-toolbar-center {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.calendar-nav {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: rgba(17,17,17,0.06);
+    color: #111;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.calendar-nav:disabled {
+    opacity: 0.28;
+    cursor: default;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.calendar-weekdays {
+    margin-bottom: 6px;
+}
+
+.calendar-weekday {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 900;
+    color: #9a6e58;
+    letter-spacing: 0.12em;
+}
+
+.calendar-day,
+.calendar-day-placeholder {
+    aspect-ratio: 1 / 1;
+}
+
+.calendar-day {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.62);
+    color: #1d1a18;
+    font-size: 13px;
+    font-weight: 800;
+    box-shadow: inset 0 0 0 1px rgba(17,17,17,0.04);
+    transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar-day:active {
+    transform: scale(0.95);
+}
+
+.calendar-day.is-today {
+    box-shadow: inset 0 0 0 1.5px rgba(219, 123, 86, 0.4);
+}
+
+.calendar-day.has-entry::after {
+    content: '';
+    position: absolute;
+    bottom: 7px;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    background: #db7b56;
+    opacity: 0.95;
+}
+
+.calendar-day.is-current::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #17120f;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.8);
+}
+
+.calendar-day.is-selected {
+    background: linear-gradient(135deg, #191919, #4a3327);
+    color: #fff7f2;
+    box-shadow: 0 10px 18px rgba(44, 27, 17, 0.26);
+}
+
+.calendar-day.is-selected.has-entry::after {
+    background: #ffd3bf;
+}
+
+.calendar-day.is-selected.is-current::before {
+    background: #ffd3bf;
+    box-shadow: 0 0 0 2px rgba(36, 24, 18, 0.7);
+}
+
+.calendar-day.is-disabled {
+    opacity: 0.28;
+    cursor: default;
+    box-shadow: none;
+}
+
+.calendar-day-placeholder {
+    pointer-events: none;
+    width: 100%;
+    background: rgba(200, 200, 200, 0.35) !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
+.date-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 14px;
+}
+
+.shortcut-chip {
+    padding: 8px 11px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.7);
+    color: #5f4b40;
+    font-size: 11px;
+    font-weight: 800;
+    box-shadow: inset 0 0 0 1px rgba(17,17,17,0.06);
+}
+
+.shortcut-chip.active {
+    background: rgba(222, 124, 78, 0.12);
+    color: #b15e3e;
+    box-shadow: inset 0 0 0 1px rgba(222, 124, 78, 0.24);
+}
+
+.date-panel-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.62);
+    box-shadow: inset 0 0 0 1px rgba(17,17,17,0.05), 0 8px 16px rgba(0,0,0,0.04);
+}
+
+.calendar-selected-label {
+    min-width: 0;
+    flex: 1;
+}
+
+.calendar-selected-caption {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: #a5806d;
+    font-weight: 900;
+    margin-bottom: 1px;
+    text-transform: uppercase;
+}
+
+.calendar-selected-value {
+    font-size: 12px;
+    color: #17120f;
+    font-weight: 900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.calendar-confirm {
+    width: var(--action-btn-width);
+    height: var(--action-btn-height);
+    padding: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1c1512, #4d372c);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 900;
+    box-shadow: 0 10px 18px rgba(17,17,17,0.18);
+    flex-shrink: 0;
+}
+
+.calendar-confirm:active {
+    transform: translateY(1px);
+}
+
+@media (max-width: 420px) {
+    .date-panel-overlay {
+        padding: calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom));
+    }
+
+    .date-panel {
+        border-radius: 26px;
+        width: min(100%, 372px);
+        padding: 15px 13px 13px;
+        max-height: min(92vh, 760px);
+    }
+
+    .calendar-shell {
+        padding: 8px;
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+        gap: 4px;
+    }
+
+    .calendar-day {
+        border-radius: 12px;
+        font-size: 11px;
+    }
+
+    .date-panel-title {
+        font-size: 17px;
+    }
+
+    .calendar-toolbar {
+        gap: 8px;
+    }
+
+    .calendar-toolbar-center {
+        gap: 6px;
+    }
+
+    .calendar-select-wrap.year {
+        width: min(100%, 102px);
+    }
+
+    .calendar-select-wrap.month {
+        width: min(100%, 86px);
+    }
+
+    .calendar-picker-trigger {
+        height: 36px;
+        padding: 0 26px 0 9px;
+        font-size: 12px;
+    }
+
+    .calendar-keyword-input,
+    .calendar-keyword-btn {
+        height: 36px;
+        font-size: 12px;
+    }
+
+    .date-panel {
+        --action-btn-width: 80px;
+        --action-btn-height: 36px;
+    }
+
+    .calendar-confirm {
+        padding: 9px 14px;
+    }
+
+    .date-panel-footer {
+        gap: 8px;
+        padding: 9px 10px;
+        border-radius: 16px;
+    }
+
+    .calendar-selected-caption {
+        font-size: 8px;
+    }
+
+    .calendar-selected-value {
+        font-size: 11px;
+    }
+}
+
 </style>
   </head>
   <body>
@@ -282,9 +875,8 @@ html, body {
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <h1 class="title" id="mainTitle" style="cursor: pointer; padding-right: 10px;">回忆长廊</h1>
         <div style="display: flex; gap: 8px; align-items: center;">
-            <a href="javascript:void(0)" onclick="window.location.replace('Report.html')" class="search-toggle-btn" style="text-decoration: none; display: inline-block; line-height: 1.5;">数据</a>
+            <a href="javascript:void(0)" onclick="window.location.replace('Report.html')" class="search-toggle-btn" style="text-decoration: none; display: inline-block; line-height: 1.5;">报告</a>
             <a href="javascript:void(0)" onclick="window.location.replace('Food.html')" class="search-toggle-btn" style="text-decoration: none; display: inline-block; line-height: 1.5;">相册</a>
-            <button class="search-toggle-btn" onclick="toggleSearch()">搜索</button>
             </div>
         </div>
         
@@ -317,6 +909,54 @@ html, body {
             <div class="alert-icon">📅</div>
             <div class="alert-msg">那天好像没聊天记录哦~<br>为你定位到最近的时刻!</div>
             <button class="alert-btn" onclick="closeDateAlert()">确定</button>
+        </div>
+    </div>
+
+    <div class="date-panel-overlay" id="calendarOverlay">
+        <div class="date-panel" role="dialog" aria-modal="true" aria-labelledby="calendarPanelTitle">
+            <div class="date-panel-hero">
+                <button id="calendarCloseBtn" class="date-panel-close" type="button" aria-label="关闭日期选择">×</button>
+                <div id="calendarPanelTitle" class="date-panel-title">选择想抵达的日期</div>
+                <div id="calendarRangeText" class="date-panel-subtitle">正在整理时间范围...</div>
+            </div>
+            <div class="calendar-keyword-bar">
+                <input id="calendarKeywordInput" class="calendar-keyword-input" type="search" placeholder="关键词搜索消息..." />
+                <button id="calendarKeywordBtn" class="calendar-keyword-btn" type="button">搜索</button>
+            </div>
+            <div class="calendar-shell">
+                <div class="calendar-toolbar">
+                    <button id="calendarPrevBtn" class="calendar-nav" type="button" aria-label="上一个月">‹</button>
+                    <div class="calendar-toolbar-center">
+                        <div class="calendar-select-wrap year">
+                            <button id="calendarYearTrigger" class="calendar-picker-trigger" type="button" aria-label="选择年份"></button>
+                            <div id="calendarYearMenu" class="calendar-picker-menu"></div>
+                        </div>
+                        <div class="calendar-select-wrap month">
+                            <button id="calendarMonthTrigger" class="calendar-picker-trigger" type="button" aria-label="选择月份"></button>
+                            <div id="calendarMonthMenu" class="calendar-picker-menu"></div>
+                        </div>
+                    </div>
+                    <button id="calendarNextBtn" class="calendar-nav" type="button" aria-label="下一个月">›</button>
+                </div>
+                <div class="calendar-weekdays">
+                    <div class="calendar-weekday">日</div>
+                    <div class="calendar-weekday">一</div>
+                    <div class="calendar-weekday">二</div>
+                    <div class="calendar-weekday">三</div>
+                    <div class="calendar-weekday">四</div>
+                    <div class="calendar-weekday">五</div>
+                    <div class="calendar-weekday">六</div>
+                </div>
+                <div id="calendarGrid" class="calendar-grid"></div>
+            </div>
+            <div id="calendarShortcuts" class="date-shortcuts"></div>
+            <div class="date-panel-footer">
+                <div class="calendar-selected-label">
+                    <div class="calendar-selected-caption">已选</div>
+                    <div id="calendarSelectedLabel" class="calendar-selected-value">--</div>
+                </div>
+                <button id="calendarConfirmBtn" class="calendar-confirm" type="button">查看</button>
+            </div>
         </div>
     </div>
 
@@ -421,9 +1061,28 @@ html, body {
       };
 
 
-      function updateCount() {
-        if(document.getElementById('resultCount')) { document.getElementById('resultCount').textContent = `共 ${currentList.length} 条`; }
-      }
+            function updateCount(customText) {
+                if (!document.getElementById('resultCount')) return;
+                document.getElementById('resultCount').textContent = customText || `共 ${currentList.length} 条`;
+            }
+
+            function showResultToast(message) {
+                    const toast = document.createElement('div');
+                    toast.textContent = message;
+                    toast.style.cssText = 'position:fixed; top:calc(86px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); background:linear-gradient(135deg, rgba(25,25,25,0.72), rgba(74,51,39,0.68)); color:#fff; font-size:13px; font-weight:700; letter-spacing:0.03em; padding:11px 18px 11px 14px; border-radius:14px; z-index:10005; box-shadow:0 12px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1); opacity:0; transition:opacity 0.4s cubic-bezier(0.34,1.56,0.64,1), transform 0.4s cubic-bezier(0.34,1.56,0.64,1); pointer-events:auto; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.12); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:75vw; cursor:pointer;';
+                    document.body.appendChild(toast);
+                    requestAnimationFrame(() => {
+                            toast.style.opacity = '1';
+                            toast.style.transform = 'translateX(-50%) translateY(0) scale(1)';
+                    });
+                    const hideToast = () => {
+                            toast.style.opacity = '0';
+                            toast.style.transform = 'translateX(-50%) translateY(-10px) scale(0.95)';
+                            setTimeout(() => toast.remove(), 400);
+                    };
+                    toast.addEventListener('click', hideToast);
+                    setTimeout(hideToast, 1800);
+            }
 
       /* ========================================================
          ★ 终极黑科技：VirtualListEngine (虚拟列表节点回收引擎)
@@ -591,13 +1250,53 @@ html, body {
       const timeInput = document.getElementById('timeInput');
       const jumpBtn = document.getElementById('jumpBtn');
       const resultCount = document.getElementById('resultCount');
+    const stickyDate = document.getElementById('stickyDate');
+        const calendarOverlay = document.getElementById('calendarOverlay');
+                const calendarKeywordInput = document.getElementById('calendarKeywordInput');
+                const calendarKeywordBtn = document.getElementById('calendarKeywordBtn');
+        const calendarGrid = document.getElementById('calendarGrid');
+        const calendarRangeText = document.getElementById('calendarRangeText');
+        const calendarSelectedLabel = document.getElementById('calendarSelectedLabel');
+        const calendarYearWrap = document.querySelector('.calendar-select-wrap.year');
+        const calendarMonthWrap = document.querySelector('.calendar-select-wrap.month');
+        const calendarYearTrigger = document.getElementById('calendarYearTrigger');
+        const calendarMonthTrigger = document.getElementById('calendarMonthTrigger');
+        const calendarYearMenu = document.getElementById('calendarYearMenu');
+        const calendarMonthMenu = document.getElementById('calendarMonthMenu');
+        const calendarPrevBtn = document.getElementById('calendarPrevBtn');
+        const calendarNextBtn = document.getElementById('calendarNextBtn');
+        const calendarConfirmBtn = document.getElementById('calendarConfirmBtn');
+        const calendarShortcuts = document.getElementById('calendarShortcuts');
+        const calendarCloseBtn = document.getElementById('calendarCloseBtn');
       const imagePreview = document.getElementById('imagePreview');
       const imagePreviewTarget = document.getElementById('imagePreviewTarget');
       const container = document.getElementById('scrollContainer');
       let imageZoom = 1;
+            let selectedCalendarDate = '';
+            let currentCalendarMonth = '';
+        let pickerOpenType = '';
+            const chatDatesSet = new Set();
+            const monthDatesMap = new Map();
+
+            const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
       let allData = window.WEFLOW_DATA || [];
+      // 过滤掉"撤回了一条消息"的项
+      allData = allData.filter(item => !item.b.includes('撤回了一条消息'));
       let currentList = allData;
+
+      allData.forEach(item => {
+          const dateKey = formatDateKey(item.t);
+          chatDatesSet.add(dateKey);
+          const monthKey = getMonthKey(dateKey);
+          if (!monthDatesMap.has(monthKey)) {
+              monthDatesMap.set(monthKey, []);
+          }
+          const dates = monthDatesMap.get(monthKey);
+          if (dates[dates.length - 1] !== dateKey) {
+              dates.push(dateKey);
+          }
+      });
 
       const renderItem = (item, index) => {
          const isSenderMe = item.s === 1; let html = '';
@@ -700,6 +1399,207 @@ html, body {
           return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
       }
 
+      function formatDateDisplay(dateStr) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return '--';
+          const [year, month, day] = dateStr.split('-').map(Number);
+          const date = new Date(year, month - 1, day);
+          return year + '年' + month + '月' + day + '日 ' + weekdayNames[date.getDay()];
+      }
+
+      function getMonthKey(dateStr) {
+          return dateStr.slice(0, 7);
+      }
+
+      function shiftMonth(monthKey, delta) {
+          const [year, month] = monthKey.split('-').map(Number);
+          const next = new Date(year, month - 1 + delta, 1);
+          return next.getFullYear() + '-' + String(next.getMonth() + 1).padStart(2, '0');
+      }
+
+      function getDateRange() {
+          if (!allData.length) return null;
+          return {
+              min: formatDateKey(allData[0].t),
+              max: formatDateKey(allData[allData.length - 1].t)
+          };
+      }
+
+      function setSelectedCalendarDate(dateStr) {
+          selectedCalendarDate = dateStr;
+          currentCalendarMonth = getMonthKey(dateStr);
+          if (calendarSelectedLabel) {
+              calendarSelectedLabel.textContent = formatDateDisplay(dateStr);
+          }
+      }
+
+      function renderCalendarSelectors() {
+          if (!calendarYearTrigger || !calendarMonthTrigger || !calendarYearMenu || !calendarMonthMenu) return;
+          const monthKeys = getAvailableMonthKeys();
+          if (!monthKeys.length) {
+              calendarYearTrigger.textContent = '--';
+              calendarMonthTrigger.textContent = '--';
+              calendarYearMenu.innerHTML = '';
+              calendarMonthMenu.innerHTML = '';
+              return;
+          }
+
+          const fallbackMonth = monthKeys[0];
+          const activeMonth = monthKeys.includes(currentCalendarMonth) ? currentCalendarMonth : fallbackMonth;
+          currentCalendarMonth = activeMonth;
+          const activeYear = activeMonth.slice(0, 4);
+          const years = Array.from(new Set(monthKeys.map(key => key.slice(0, 4))));
+          calendarYearTrigger.textContent = activeYear + '年';
+          calendarYearMenu.innerHTML = years.map(year => {
+              const activeClass = year === activeYear ? ' active' : '';
+              return `<button class="calendar-picker-option${activeClass}" type="button" data-year="${year}">${year}年</button>`;
+          }).join('');
+
+          const monthsInYear = monthKeys.filter(key => key.startsWith(activeYear + '-'));
+          const finalMonth = monthsInYear.includes(currentCalendarMonth) ? currentCalendarMonth : monthsInYear[0];
+          currentCalendarMonth = finalMonth;
+          const finalMonthText = finalMonth.slice(5, 7) + '月';
+          calendarMonthTrigger.textContent = finalMonthText;
+          calendarMonthMenu.innerHTML = monthsInYear.map(key => {
+              const month = key.slice(5, 7);
+              const activeClass = key === finalMonth ? ' active' : '';
+              return `<button class="calendar-picker-option${activeClass}" type="button" data-month="${key}">${month}月</button>`;
+          }).join('');
+      }
+
+      function getMonthFallbackDate(monthKey) {
+          const dates = monthDatesMap.get(monthKey) || [];
+          return dates[0] || '';
+      }
+
+      function getAvailableMonthKeys() {
+          const range = getDateRange();
+          if (!range) return [];
+          const [minYear, minMonth] = range.min.slice(0, 7).split('-').map(Number);
+          const [maxYear, maxMonth] = range.max.slice(0, 7).split('-').map(Number);
+          const result = [];
+          let year = minYear;
+          let month = minMonth;
+          while (year < maxYear || (year === maxYear && month <= maxMonth)) {
+              result.push(year + '-' + String(month).padStart(2, '0'));
+              month += 1;
+              if (month > 12) {
+                  month = 1;
+                  year += 1;
+              }
+          }
+          return result;
+      }
+
+      function closeCalendarPickerMenus() {
+          pickerOpenType = '';
+          if (calendarYearWrap) calendarYearWrap.classList.remove('open');
+          if (calendarMonthWrap) calendarMonthWrap.classList.remove('open');
+      }
+
+      function toggleCalendarPickerMenu(type) {
+          const nextType = pickerOpenType === type ? '' : type;
+          closeCalendarPickerMenus();
+          pickerOpenType = nextType;
+          if (pickerOpenType === 'year' && calendarYearWrap) {
+              calendarYearWrap.classList.add('open');
+          }
+          if (pickerOpenType === 'month' && calendarMonthWrap) {
+              calendarMonthWrap.classList.add('open');
+          }
+      }
+
+      function getAdjacentAvailableMonth(monthKey, delta) {
+          const monthKeys = getAvailableMonthKeys();
+          const index = monthKeys.indexOf(monthKey);
+          if (index === -1) return '';
+          return monthKeys[index + delta] || '';
+      }
+
+      function renderCalendarShortcuts() {
+          if (!calendarShortcuts) return;
+          const range = getDateRange();
+          if (!range) {
+              calendarShortcuts.innerHTML = '';
+              return;
+          }
+
+          const currentDate = (stickyDate?.dataset.currentDate || '').trim();
+          const shortcuts = [
+              { key: 'current', label: '当前进度', value: /^\d{4}-\d{2}-\d{2}$/.test(currentDate) ? currentDate : range.max },
+              { key: 'start', label: '第一天', value: range.min },
+              { key: 'end', label: '最近一天', value: range.max }
+          ];
+
+          calendarShortcuts.innerHTML = shortcuts.map(item => {
+              const activeClass = item.value === selectedCalendarDate ? ' active' : '';
+              return `<button class="shortcut-chip${activeClass}" type="button" data-date="${item.value}">${item.label}</button>`;
+          }).join('');
+      }
+
+      function renderCalendar() {
+          if (!calendarGrid || !calendarRangeText) return;
+          const range = getDateRange();
+          if (!range) {
+              calendarGrid.innerHTML = '';
+              calendarRangeText.textContent = '暂无可浏览的日期';
+              return;
+          }
+
+          if (!selectedCalendarDate) {
+              setSelectedCalendarDate((stickyDate?.dataset.currentDate || '').trim() || range.max);
+          }
+          if (!currentCalendarMonth) {
+              currentCalendarMonth = getMonthKey(selectedCalendarDate);
+          }
+
+          const [year, month] = currentCalendarMonth.split('-').map(Number);
+          const firstDay = new Date(year, month - 1, 1);
+          const firstWeekday = firstDay.getDay();
+          const totalDays = new Date(year, month, 0).getDate();
+          const todayStr = (() => {
+              const now = new Date();
+              return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+          })();
+          const currentStickyDate = (stickyDate?.dataset.currentDate || '').trim();
+          const prevMonth = getAdjacentAvailableMonth(currentCalendarMonth, -1);
+          const nextMonth = getAdjacentAvailableMonth(currentCalendarMonth, 1);
+
+          calendarRangeText.textContent = formatDateDisplay(range.min) + ' 至 ' + formatDateDisplay(range.max);
+          renderCalendarSelectors();
+
+          let cells = '';
+          for (let i = 0; i < firstWeekday; i++) {
+              cells += '<div class="calendar-day-placeholder" style="background: rgba(200, 200, 200, 0.16); border-radius: 14px;"></div>';
+          }
+
+          for (let day = 1; day <= totalDays; day++) {
+              const dateStr = year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+              const isDisabled = dateStr < range.min || dateStr > range.max;
+              const classes = ['calendar-day'];
+              if (selectedCalendarDate === dateStr) classes.push('is-selected');
+              if (todayStr === dateStr) classes.push('is-today');
+              if (currentStickyDate === dateStr) classes.push('is-current');
+              if (chatDatesSet.has(dateStr)) classes.push('has-entry');
+              if (isDisabled) classes.push('is-disabled');
+              cells += `<button class="${classes.join(' ')}" type="button" data-date="${dateStr}" ${isDisabled ? 'disabled' : ''}>${day}</button>`;
+          }
+
+          // 固定 6 行日历高度，避免 5/6 周月份切换时弹窗跳动
+          const totalCells = firstWeekday + totalDays;
+          const trailingPlaceholders = 42 - totalCells;
+          for (let i = 0; i < trailingPlaceholders; i++) {
+              cells += '<div class="calendar-day-placeholder" style="background: rgba(200, 200, 200, 0.16); border-radius: 14px;"></div>';
+          }
+
+          calendarGrid.innerHTML = cells;
+          calendarPrevBtn.disabled = !prevMonth;
+          calendarNextBtn.disabled = !nextMonth;
+          renderCalendarShortcuts();
+          if (calendarSelectedLabel) {
+              calendarSelectedLabel.textContent = formatDateDisplay(selectedCalendarDate);
+          }
+      }
+
       function updateStickyDate() {
           const sticky = document.getElementById('stickyDate');
           if (!sticky || !container || !currentList || currentList.length === 0) return;
@@ -765,13 +1665,23 @@ html, body {
           }, 500);
       });
 
+            function applyKeywordSearch(rawKeyword, withToast) {
+                const keyword = (rawKeyword || '').trim().toLowerCase();
+                currentList = keyword ? allData.filter(item => item.b.toLowerCase().includes(keyword)) : allData;
+                renderer.setData(currentList);
+                if (keyword) {
+                    updateCount(`关键词“${rawKeyword.trim()}”匹配 ${currentList.length} 条`);
+                    if (withToast) showResultToast(`共找到 ${currentList.length} 条相关消息`);
+                } else {
+                    updateCount();
+                }
+            }
+
       let searchTimeout;
       searchInput.addEventListener('input', () => {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
-          const keyword = searchInput.value.trim().toLowerCase();
-          currentList = keyword ? allData.filter(item => item.b.toLowerCase().includes(keyword)) : allData;
-          renderer.setData(currentList); updateCount();
+                                        applyKeywordSearch(searchInput.value, false);
         }, 300);
       });
 
@@ -784,17 +1694,209 @@ html, body {
           return nearestIdx;
       }
 
+      function getDateKeyFromDateTimeInput(value) {
+          if (!value) return '';
+          return value.slice(0, 10);
+      }
+
+      function countMessagesByDateKey(dateKey) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return 0;
+          const start = Math.floor(new Date(dateKey + 'T00:00:00').getTime() / 1000);
+          const end = start + 86400;
+          let count = 0;
+          for (let i = 0; i < allData.length; i++) {
+              const t = allData[i].t;
+              if (t >= start && t < end) count += 1;
+          }
+          return count;
+      }
+
       function closeDateAlert() { document.getElementById('dateAlert').classList.remove('active'); }
+
+      function closeCalendarOverlay() {
+          if (!calendarOverlay) return;
+          calendarOverlay.classList.remove('active');
+          closeCalendarPickerMenus();
+      }
+
+      function openStickyDatePicker() {
+          if (!calendarOverlay) return;
+          const range = getDateRange();
+          if (!range) return;
+          const currentDate = (document.getElementById('stickyDate')?.dataset.currentDate || '').trim();
+          const targetDate = /^\d{4}-\d{2}-\d{2}$/.test(currentDate) ? currentDate : range.max;
+          setSelectedCalendarDate(targetDate);
+          currentCalendarMonth = getMonthKey(targetDate);
+          renderCalendar();
+          calendarOverlay.classList.add('active');
+          if (calendarKeywordInput) {
+              calendarKeywordInput.value = searchInput ? searchInput.value : '';
+          }
+          if (window.navigator.vibrate) window.navigator.vibrate(15);
+      }
+
+      if (stickyDate) {
+          stickyDate.addEventListener('click', openStickyDatePicker);
+      }
+
+      if (calendarGrid) {
+          calendarGrid.addEventListener('click', (event) => {
+              const target = event.target.closest('.calendar-day[data-date]');
+              if (!target || target.disabled) return;
+              setSelectedCalendarDate(target.dataset.date);
+              renderCalendar();
+          });
+      }
+
+      if (calendarShortcuts) {
+          calendarShortcuts.addEventListener('click', (event) => {
+              const target = event.target.closest('.shortcut-chip[data-date]');
+              if (!target) return;
+              setSelectedCalendarDate(target.dataset.date);
+              renderCalendar();
+          });
+      }
+
+      if (calendarPrevBtn) {
+          calendarPrevBtn.addEventListener('click', () => {
+              const prevMonth = getAdjacentAvailableMonth(currentCalendarMonth, -1);
+              if (!prevMonth) return;
+              currentCalendarMonth = prevMonth;
+              const monthDate = getMonthFallbackDate(currentCalendarMonth);
+              if (monthDate) {
+                  selectedCalendarDate = monthDate;
+              }
+              renderCalendar();
+          });
+      }
+
+      if (calendarNextBtn) {
+          calendarNextBtn.addEventListener('click', () => {
+              const nextMonth = getAdjacentAvailableMonth(currentCalendarMonth, 1);
+              if (!nextMonth) return;
+              currentCalendarMonth = nextMonth;
+              const monthDate = getMonthFallbackDate(currentCalendarMonth);
+              if (monthDate) {
+                  selectedCalendarDate = monthDate;
+              }
+              renderCalendar();
+          });
+      }
+
+      if (calendarYearTrigger) {
+          calendarYearTrigger.addEventListener('click', (event) => {
+              event.stopPropagation();
+              toggleCalendarPickerMenu('year');
+          });
+      }
+
+      if (calendarMonthTrigger) {
+          calendarMonthTrigger.addEventListener('click', (event) => {
+              event.stopPropagation();
+              toggleCalendarPickerMenu('month');
+          });
+      }
+
+      if (calendarYearMenu) {
+          calendarYearMenu.addEventListener('click', (event) => {
+              const target = event.target.closest('.calendar-picker-option[data-year]');
+              if (!target) return;
+              const selectedYear = target.dataset.year;
+              const monthKeys = getAvailableMonthKeys().filter(key => key.startsWith(selectedYear + '-'));
+              if (!monthKeys.length) return;
+              currentCalendarMonth = monthKeys[0];
+              selectedCalendarDate = getMonthFallbackDate(currentCalendarMonth) || selectedCalendarDate;
+              renderCalendar();
+              closeCalendarPickerMenus();
+          });
+      }
+
+      if (calendarMonthMenu) {
+          calendarMonthMenu.addEventListener('click', (event) => {
+              const target = event.target.closest('.calendar-picker-option[data-month]');
+              if (!target) return;
+              currentCalendarMonth = target.dataset.month;
+              selectedCalendarDate = getMonthFallbackDate(currentCalendarMonth) || selectedCalendarDate;
+              renderCalendar();
+              closeCalendarPickerMenus();
+          });
+      }
+
+      document.addEventListener('click', (event) => {
+          const insideWrap = event.target.closest('.calendar-select-wrap');
+          if (!insideWrap) {
+              closeCalendarPickerMenus();
+          }
+      });
+
+      if (calendarConfirmBtn) {
+          calendarConfirmBtn.addEventListener('click', () => {
+              if (!selectedCalendarDate) return;
+              timeInput.value = selectedCalendarDate + 'T00:00';
+              closeCalendarOverlay();
+              jumpBtn.click();
+          });
+      }
+
+      if (calendarKeywordBtn) {
+          calendarKeywordBtn.addEventListener('click', () => {
+              const value = calendarKeywordInput ? calendarKeywordInput.value : '';
+              if (searchInput) {
+                  searchInput.value = value;
+              }
+              applyKeywordSearch(value, true);
+              closeCalendarOverlay();
+          });
+      }
+
+      if (calendarKeywordInput) {
+          calendarKeywordInput.addEventListener('keydown', (event) => {
+              if (event.key !== 'Enter') return;
+              event.preventDefault();
+              if (calendarKeywordBtn) calendarKeywordBtn.click();
+          });
+      }
+
+      if (calendarCloseBtn) {
+          calendarCloseBtn.addEventListener('click', closeCalendarOverlay);
+      }
+
+      if (calendarOverlay) {
+          calendarOverlay.addEventListener('click', (event) => {
+              if (event.target === calendarOverlay) {
+                  closeCalendarOverlay();
+              }
+          });
+      }
+
+      document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && calendarOverlay && calendarOverlay.classList.contains('active')) {
+              closeCalendarOverlay();
+          }
+      });
 
       jumpBtn.addEventListener('click', () => {
         const value = timeInput.value;
         if (!value) { currentList = allData; renderer.setData(currentList); updateCount(); return; }
         const target = Math.floor(new Date(value).getTime() / 1000);
+                const dayKey = getDateKeyFromDateTimeInput(value);
+                const dayCount = countMessagesByDateKey(dayKey);
         const exactIdx = allData.findIndex(item => item.t >= target && item.t < target + 86400);
         let finalIdx;
-        if (exactIdx === -1) { document.getElementById('dateAlert').classList.add('active'); finalIdx = getNearestIndex(target); } 
-        else { finalIdx = exactIdx; }
-        currentList = allData.slice(finalIdx); renderer.setData(currentList); updateCount();
+                if (exactIdx === -1) {
+                        document.getElementById('dateAlert').classList.add('active');
+                        finalIdx = getNearestIndex(target);
+                        currentList = allData.slice(finalIdx);
+                        renderer.setData(currentList);
+                        updateCount(`未找到 ${dayKey}，已定位最近记录`);
+                        showResultToast('当天无消息，已定位到最近日期');
+                } else {
+                        finalIdx = exactIdx;
+                        currentList = allData.slice(finalIdx);
+                        renderer.setData(currentList);
+                        updateCount(`${dayKey} 当天共 ${dayCount} 条`);
+                        showResultToast(`${dayKey} 当天共 ${dayCount} 条消息`);
+                }
         const controls = document.getElementById('searchControls');
         if (controls) { controls.classList.add('controls-hidden'); document.querySelectorAll('.search-toggle-btn').forEach(btn => { if (btn.innerText === '收起') btn.innerText = '搜索'; }); }
       });
