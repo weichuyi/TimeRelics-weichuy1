@@ -71,13 +71,47 @@
 		}
 
 html, body {
-  height: 100% !important; 
-  overflow: hidden !important; 
-  margin: 0; padding: 0; overscroll-behavior: none; 
+  min-height: 100vh !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  margin: 0; padding: 0; overscroll-behavior: none;
   background: url('wechat.jpg') center/cover no-repeat fixed !important;
 }
 
-.page { height: 100% !important; display: flex; flex-direction: column; }
+.sticky-date {
+  position: fixed;
+  top: calc(72px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.86);
+  border-radius: 12px;
+  font-size: 12px;
+  color: #444;
+  z-index: 101;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.sticky-date.hidden {
+  display: none !important;
+}
+
+.sticky-date.fade-out {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+.sticky-date.fade-in {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.page { min-height: 100vh !important; height: 100vh !important; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
+
+.scroll-container { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; background: transparent !important; border: none !important; margin-top: 0px !important; padding-top: calc(75px + env(safe-area-inset-top)) !important; padding-bottom: calc(70px + env(safe-area-inset-bottom)) !important; -webkit-overflow-scrolling: touch; position: relative; box-sizing: border-box; }
 
 .header {
   position: fixed !important; top: 0; left: 0; width: 100%; box-sizing: border-box; z-index: 100;
@@ -102,13 +136,24 @@ html, body {
 .stats { font-size: 13px; color: #111; font-weight: bold; margin-left: auto; }
 
 /* ★ 虚拟列表核心排版 */
-.v-item { padding-bottom: 15px; padding-left: 15px; padding-right: 15px; }
+.v-item { padding-bottom: 15px; padding-left: 8px; padding-right: 8px; }
 
 .message { display: flex; flex-direction: column; gap: 8px; }
 .message.hidden { display: none; }
 
-.message-row { display: flex; gap: 12px; align-items: flex-end; }
-.message.sent .message-row { flex-direction: row-reverse; }
+.message-row { display: flex; gap: 8px; align-items: flex-start; width: 100%; justify-content: flex-start; }
+.message-row .avatar-wrapper { order: 0; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.message-row .bubble { order: 1; max-width: 70%; margin: 0; align-self: flex-start; }
+
+.message-timestamp { font-size: 10px; color: #666; line-height: 1.2; white-space: nowrap; user-select: none; margin-top: 2px; }
+
+.message.received .message-row { justify-content: flex-start; }
+.message.received .avatar-wrapper { order: 0; align-items: center; }
+.message.received .bubble { order: 1; margin: 0; }
+
+.message.sent .message-row { justify-content: flex-end; }
+.message.sent .avatar-wrapper { order: 2; align-items: center; }
+.message.sent .bubble { order: 1; margin: 0; }
 
 .avatar {
   width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,0.8);
@@ -116,6 +161,13 @@ html, body {
   color: #475569; font-weight: 600; border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-wrapper {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 40px;
+}
+.message-timestamp {
+  font-size: 10px; color: #666; line-height: 1.2; white-space: nowrap; user-select: none;
+}
 
 .bubble {
   max-width: min(70%, 720px); background: var(--received) !important;
@@ -132,6 +184,8 @@ html, body {
 
 .previewable { cursor: zoom-in; }
 .bubble img { max-width: 100%; border-radius: 14px; }
+.day-divider { text-align: center; margin: 8px 0 4px; font-size: 12px; color: #555; }
+.message-timestamp { font-size: 10px; opacity: 0.82; }
 .bubble img.image { max-height: 260px; object-fit: contain; background: rgba(255,255,255,0.5); padding: 6px; }
 .bubble img.emoji { max-height: 160px; width: auto; }
 
@@ -237,6 +291,7 @@ html, body {
         <div class="meta">
             <span>28179 条消息</span><span>私聊</span><span>2026-03-10 19:09:01</span>
         </div>
+        <div id="stickyDate" class="sticky-date">--</div>
 
         <div id="searchControls" class="controls controls-hidden" style="margin-top: 15px;">
             <div style="margin-bottom: 10px;">
@@ -493,6 +548,9 @@ html, body {
             });
 
             this.measureHeights();
+            if (window.updateStickyDate) {
+                window.updateStickyDate();
+            }
         }
 
         // 精准丈量实际物理高度
@@ -546,12 +604,15 @@ html, body {
          const magicDate = '2025-12-19'; 
          const msgDate = new Date(item.t * 1000);
          const dateStr = msgDate.getFullYear() + '-' + String(msgDate.getMonth() + 1).padStart(2, '0') + '-' + String(msgDate.getDate()).padStart(2, '0');
+         const timeStr = String(msgDate.getHours()).padStart(2, '0') + ':' + String(msgDate.getMinutes()).padStart(2, '0');
 
          let prevDateStr = '';
          if (index > 0 && currentList[index - 1]) {
              const prevDate = new Date(currentList[index - 1].t * 1000);
              prevDateStr = prevDate.getFullYear() + '-' + String(prevDate.getMonth() + 1).padStart(2, '0') + '-' + String(prevDate.getDate()).padStart(2, '0');
          }
+
+         const showDateLabel = dateStr !== prevDateStr;
 
          if (dateStr === magicDate && dateStr !== prevDateStr) {
              html += `
@@ -565,7 +626,8 @@ html, body {
              `;
          }
 
-         let bHtml = item.b.replace(/<audio[^>]*src=['"]([^'"]+)['"][^>]*>(?:<\/audio>)?/gi, (match, src) => {
+         // 移除原始消息中已有的 message-time 结构，避免气泡顶部重复显示时间
+         let bHtml = item.b.replace(/<div class="message-time">[\s\S]*?<\/div>/gi, '').replace(/<audio[^>]*src=['"]([^'"]+)['"][^>]*>(?:<\/audio>)?/gi, (match, src) => {
               return `
                   <div>
                       <div class="custom-audio-player lazy-audio" data-src="${src}" onclick="playCustomAudio('${src}', this, event)">
@@ -581,8 +643,12 @@ html, body {
 
          html += `
           <div class="message ${isSenderMe ? 'sent' : 'received'}" data-index="${item.i}">
+            ${showDateLabel ? `<div class="day-divider">${dateStr}</div>` : ''}
             <div class="message-row">
-              <div class="avatar">${item.a}</div>
+              <div class="avatar-wrapper">
+                <div class="avatar">${item.a}</div>
+                <div class="message-timestamp">${timeStr}</div>
+              </div>
               <div class="bubble">${bHtml}</div>
             </div>
           </div>
@@ -592,6 +658,7 @@ html, body {
       
       // ★ 激活终极虚拟列表引擎
       const renderer = new VirtualListEngine(container, currentList, renderItem);
+      updateStickyDate();
 
       const savedScrollTop = parseInt(localStorage.getItem('chat_scrollTop'), 10);
       const savedStartIndex = parseInt(localStorage.getItem('chat_startIndex'), 10) || 0;
@@ -628,6 +695,60 @@ html, body {
           setTimeout(() => { toast.remove(); }, 4500);
       }
 
+      function formatDateKey(ts) {
+          const d = new Date(ts * 1000);
+          return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      }
+
+      function updateStickyDate() {
+          const sticky = document.getElementById('stickyDate');
+          if (!sticky || !container || !currentList || currentList.length === 0) return;
+
+          const containerRect = container.getBoundingClientRect();
+          const items = container.querySelectorAll('.v-item');
+          let targetDate = null;
+
+          for (let i = 0; i < items.length; i++) {
+              const item = items[i];
+              const rect = item.getBoundingClientRect();
+              if (rect.bottom >= containerRect.top + 2) {
+                  const idx = parseInt(item.getAttribute('data-index'));
+                  if (!isNaN(idx) && currentList[idx]) {
+                      targetDate = formatDateKey(currentList[idx].t);
+                  }
+                  break;
+              }
+          }
+
+          if (!targetDate) {
+              const last = items[items.length - 1];
+              if (last) {
+                  const idx = parseInt(last.getAttribute('data-index'));
+                  if (!isNaN(idx) && currentList[idx]) {
+                      targetDate = formatDateKey(currentList[idx].t);
+                  }
+              }
+          }
+
+          if (!targetDate) return;
+          if (sticky.dataset.currentDate === targetDate) return;
+
+          if (!sticky.dataset.currentDate) {
+              sticky.textContent = targetDate;
+              sticky.dataset.currentDate = targetDate;
+              return;
+          }
+
+          sticky.classList.add('fade-out');
+          setTimeout(() => {
+              sticky.textContent = targetDate;
+              sticky.dataset.currentDate = targetDate;
+              sticky.classList.remove('fade-out');
+              sticky.classList.add('fade-in');
+              setTimeout(() => sticky.classList.remove('fade-in'), 260);
+          }, 220);
+      }
+
       function closeIntro() {
           document.getElementById('introModal').classList.remove('active'); localStorage.setItem('intro_shown', 'true'); 
           const startIndex = allData.length - currentList.length;
@@ -636,6 +757,7 @@ html, body {
 
       let scrollTimeout;
       container.addEventListener('scroll', () => {
+          updateStickyDate();
           clearTimeout(scrollTimeout);
           scrollTimeout = setTimeout(() => {
               localStorage.setItem('chat_scrollTop', container.scrollTop);
@@ -736,8 +858,17 @@ html, body {
         };
         function toggleSearch() {
             var controls = document.getElementById('searchControls');
-            if (controls.classList.contains('controls-hidden')) { controls.classList.remove('controls-hidden'); event.target.innerText = '收起'; } 
-            else { controls.classList.add('controls-hidden'); event.target.innerText = '搜索'; }
+            var stickyDate = document.getElementById('stickyDate');
+            if (controls.classList.contains('controls-hidden')) {
+                controls.classList.remove('controls-hidden');
+                event.target.innerText = '收起';
+                if (stickyDate) stickyDate.classList.add('hidden');
+            } else {
+                controls.classList.add('controls-hidden');
+                event.target.innerText = '搜索';
+                if (stickyDate) stickyDate.classList.remove('hidden');
+                if (window.updateStickyDate) window.updateStickyDate();
+            }
         }
         window.history.pushState(null, null, window.location.href);
         window.addEventListener('popstate', function () {
