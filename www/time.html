@@ -1,1 +1,131 @@
-﻿
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Time Capsule</title>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-touch-callout: none; 
+            -webkit-user-select: none; 
+            user-select: none;
+        }
+        ::-webkit-scrollbar { display: none; width: 0; height: 0; color: transparent; }
+        html, body { -ms-overflow-style: none; scrollbar-width: none; }
+        input, textarea { -webkit-user-select: auto; user-select: auto; }
+        :root {
+            --bg: #fff9f5;
+            --text-dark: #111111;
+            --text-light: #555555;
+            --accent: #8e7f74;
+            --orange: #ff7e5f;
+            --radius: 25px;
+        }
+        body {
+            margin: 0; padding: 0;
+            background: var(--bg);
+            font-family: -apple-system, "PingFang SC", sans-serif;
+            color: var(--text-dark);
+            overflow-x: hidden;
+            animation: fadeInPage 1s ease-out forwards;
+            overscroll-behavior: none;
+        }
+        @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
+        .header {
+            position: fixed; top: 0; left: 0; width: 100%; box-sizing: border-box; z-index: 100;
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border-bottom: 2px solid rgba(0, 0, 0, 0.8);
+            border-left: 1.5px solid rgba(0, 0, 0, 0.15);
+            border-right: 1.5px solid rgba(0, 0, 0, 0.15);
+            border-top: none;
+            border-radius: 0 0 24px 24px;
+            padding: calc(12px + env(safe-area-inset-top)) 16px 12px 16px;
+            display: flex; align-items: center;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        }
+        .back-btn { color: #111; text-decoration: none; font-size: 20px; font-weight: 900; margin-right: 15px; padding: 0 10px 0 0; }
+        .title { color: #111; font-size: 18px; margin: 0; font-weight: 900; letter-spacing: 1px; }
+        .container { padding: calc(85px + env(safe-area-inset-top)) 20px calc(40px + env(safe-area-inset-bottom)) 20px; display: flex; flex-direction: column; gap: 20px; }
+        .report-card {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: var(--radius);
+            padding: 25px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            text-align: center; position: relative; overflow: hidden;
+            opacity: 1; transform: translateY(0);
+        }
+        .section-tag { display: inline-block; font-size: 11px; color: var(--orange); background: rgba(255, 126, 95, 0.1); padding: 4px 12px; border-radius: 12px; letter-spacing: 1px; margin-bottom: 15px; font-weight: bold; }
+        .section-title { font-size: 20px; font-weight: 900; color: var(--text-dark); margin: 0 0 15px 0; }
+        .content-text { text-align: left; font-size: 15px; color: var(--text-light); line-height: 1.7; font-weight: bold; margin-top: 12px; }
+        .highlight { color: var(--orange); font-weight: 900; }
+        .countdown { margin-top: 12px; font-size: 14px; color: #7a7a7a; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="javascript:void(0)" onclick="history.back()" class="back-btn">←</a>        <h1 class="title">时光胶囊</h1>
+    </div>
+    <div class="container">
+        <div id="lockedCard" class="report-card">
+            <div class="section-tag">时间锁</div>
+            <h2 class="section-title" style="text-align: center;">这是一封给未来的信。</h2>
+            <p class="content-text" style="text-align: center;">直到<strong class="highlight">2026年9月1日</strong> 才能打开。</p>
+            <p id="countdown" class="countdown">正在计算剩余时间...</p>
+        </div>
+
+        <div id="letterCard" class="report-card" style="display:none; text-align:left;">
+            <div class="section-tag">信件</div>
+            <h2 class="section-title" style="text-align: center;">致 2026年9月1日的你</h2>
+            <div class="content-text">
+                亲爱的未来的我：
+                <br><br>
+                如果你此刻正在读这封信，说明你已经来到 2026 年9月1日，历经了无数变化与成长。
+                <br><br>
+                现在的你，可能已经实现了许多当初的憧憬，也经历了不少意外的挑战。不论结果如何，请记得保持温柔、坚持初心。
+                <br><br>
+                今天的你，是过去的我们共同努力的结果。愿你在未来的日子里，继续做一个勇敢、善良、热爱生活的人。
+                <br><br>
+                此致
+                <br>
+                写于：2026年3月20日11点42分
+                <br>
+                2026年9月1日快乐！
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var lockedCard = document.getElementById('lockedCard');
+            var letterCard = document.getElementById('letterCard');
+            var countdown = document.getElementById('countdown');
+            var unlockDate = new Date('2026-09-01T00:00:00');
+
+            function update() {
+                var now = new Date();
+                if (now < unlockDate) {
+                    letterCard.style.display = 'none';
+                    lockedCard.style.display = 'block';
+
+                    var diff = unlockDate - now;
+                    var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    countdown.textContent = '解锁倒计时：' + days + '天 ' + hours + '小时 ' + minutes + '分 ' + seconds + '秒';
+                } else {
+                    lockedCard.style.display = 'none';
+                    letterCard.style.display = 'block';
+                }
+            }
+
+            update();
+            setInterval(update, 1000);
+        });
+    </script>
+</body>
+</html>
