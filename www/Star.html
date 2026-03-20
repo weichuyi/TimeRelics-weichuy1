@@ -214,8 +214,54 @@
         let currentDeletedItems = []; 
         let toastTimeout = null;
 
+        const AUDIO_DURATION_CACHE_KEY = 'chat_audio_duration_cache_v1';
+        const INITIAL_RENDER_COUNT = 16;
+        const RENDER_BATCH_COUNT = 20;
+        const MAX_AUDIO_DURATION_CACHE = 400;
+
+        let audioDurationCache = {};
+        try {
+            audioDurationCache = JSON.parse(localStorage.getItem(AUDIO_DURATION_CACHE_KEY) || '{}');
+        } catch (e) {
+            audioDurationCache = {};
+        }
+
+        let sortedFavs = [];
+        let loadMoreObserver = null;
+        let expandableCheckQueue = [];
+        let expandableCheckScheduled = false;
+
+        const loadMoreSentinel = document.createElement('div');
+        loadMoreSentinel.id = 'list-load-more';
+        loadMoreSentinel.style.height = '1px';
+        loadMoreSentinel.style.width = '100%';
+
         const globalAudio = new Audio();
         let currentPlayingBtn = null;
+
+        function saveAudioDurationCache() {
+            try {
+                const keys = Object.keys(audioDurationCache);
+                if (keys.length > MAX_AUDIO_DURATION_CACHE) {
+                    keys.sort((a, b) => (audioDurationCache[b].updatedAt || 0) - (audioDurationCache[a].updatedAt || 0));
+                    const trimmed = {};
+                    keys.slice(0, MAX_AUDIO_DURATION_CACHE).forEach(key => { trimmed[key] = audioDurationCache[key]; });
+                    audioDurationCache = trimmed;
+                }
+                localStorage.setItem(AUDIO_DURATION_CACHE_KEY, JSON.stringify(audioDurationCache));
+            } catch (e) {}
+        }
+
+        function getCachedDuration(src) {
+            const item = audioDurationCache[src];
+            return item && typeof item.secs === 'number' ? item.secs : null;
+        }
+
+        function cacheDuration(src, secs) {
+            if (!src || isNaN(secs)) return;
+            audioDurationCache[src] = { secs, updatedAt: Date.now() };
+            saveAudioDurationCache();
+        }
 
         const audioDurationObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
@@ -223,6 +269,15 @@
                     const btn = entry.target;
                     const src = btn.getAttribute('data-src');
                     if (src && !btn.dataset.durationLoaded) {
+                        const cachedSecs = getCachedDuration(src);
+                        if (cachedSecs !== null) {
+                            btn.dataset.durationLoaded = 'true';
+                            btn.dataset.totalTime = cachedSecs;
+                            btn.querySelector('.custom-audio-duration').innerText = cachedSecs + '"';
+                            observer.unobserve(btn);
+                            return;
+                        }
+
                         btn.dataset.durationLoaded = 'true';
                         const tempAudio = new Audio(src);
                         tempAudio.addEventListener('loadedmetadata', () => {
@@ -230,6 +285,7 @@
                             if(!isNaN(secs)) {
                                 btn.querySelector('.custom-audio-duration').innerText = secs + '"';
                                 btn.dataset.totalTime = secs; 
+                                cacheDuration(src, secs);
                             }
                         });
                         observer.unobserve(btn); 
@@ -303,118 +359,258 @@
             if (statEl) { statEl.innerText = `共收藏了 ${favs.length} 句`; }
         }
 
+        function captureViewportAnchor() {
+            const rows = Array.from(document.querySelectorAll('.card-row'));
+            const viewportTop = 0;
+
+            for (const row of rows) {
+                const rect = row.getBoundingClientRect();
+                if (rect.bottom > viewportTop + 2) {
+                    return {
+                        id: row.id.replace('row-', ''),
+                        offset: rect.top
+                    };
+                }
+            }
+
+            return { id: null, offset: 0, scrollY: window.scrollY };
+        }
+
+        function restoreViewportAnchor(anchor) {
+            if (!anchor) return;
+
+            if (anchor.id) {
+                while (!document.getElementById(`row-${anchor.id}`) && renderedCount < sortedFavs.length) {
+                    appendNextBatch(RENDER_BATCH_COUNT);
+                }
+
+                const target = document.getElementById(`row-${anchor.id}`);
+                if (target) {
+                    const top = target.getBoundingClientRect().top;
+                    const delta = top - anchor.offset;
+                    window.scrollTo(0, window.scrollY + delta);
+                    return;
+                }
+            }
+
+            if (typeof anchor.scrollY === 'number') {
+                window.scrollTo(0, anchor.scrollY);
+            }
+        }
+
+        function rerenderWithAnchor(anchor) {
+            renderList();
+            requestAnimationFrame(() => restoreViewportAnchor(anchor));
+        }
+
+        function queueExpandableDetection(rows) {
+            if (!rows || rows.length === 0) return;
+            expandableCheckQueue.push(...rows);
+            if (!expandableCheckScheduled) {
+                expandableCheckScheduled = true;
+                requestAnimationFrame(processExpandableDetectionQueue);
+            }
+        }
+
+        function processExpandableDetectionQueue() {
+            const frameBudgetMs = 8;
+            const start = performance.now();
+
+            while (expandableCheckQueue.length > 0 && (performance.now() - start) < frameBudgetMs) {
+                const row = expandableCheckQueue.shift();
+                detectExpandableForRow(row);
+            }
+
+            if (expandableCheckQueue.length > 0) {
+                requestAnimationFrame(processExpandableDetectionQueue);
+            } else {
+                expandableCheckScheduled = false;
+            }
+        }
+
+        function detectExpandableForRow(row) {
+            if (!row) return;
+            const card = row.querySelector('.fav-card');
+            if (!card) return;
+
+            const audioPreview = card.querySelector('.audio-preview');
+            if (audioPreview) {
+                const fullText = card.querySelector('.audio-full-text');
+                if (fullText) card.classList.add('is-expandable');
+                return;
+            }
+
+            const textPreview = card.querySelector('.text-preview');
+            const textFull = card.querySelector('.text-full');
+            if (!textPreview || !textFull) return;
+
+            const hasImg = /<img/i.test(textFull.innerHTML);
+            const hasBr = /<br/i.test(textFull.innerHTML);
+            if (hasImg || hasBr || textPreview.scrollWidth > textPreview.clientWidth + 1) {
+                card.classList.add('is-expandable');
+            }
+        }
+
+        function bindLazyAudioWithin(rows) {
+            rows.forEach(row => {
+                row.querySelectorAll('.lazy-audio:not(.observing)').forEach(el => {
+                    const src = el.getAttribute('data-src');
+                    const cachedSecs = src ? getCachedDuration(src) : null;
+                    if (cachedSecs !== null) {
+                        el.dataset.durationLoaded = 'true';
+                        el.dataset.totalTime = cachedSecs;
+                        el.querySelector('.custom-audio-duration').innerText = cachedSecs + '"';
+                        return;
+                    }
+
+                    el.classList.add('observing');
+                    audioDurationObserver.observe(el);
+                });
+            });
+        }
+
+        function getSortedFavs() {
+            return [...favs].sort((a, b) => {
+                const aPin = a.pinned ? 1 : 0;
+                const bPin = b.pinned ? 1 : 0;
+                if (aPin !== bPin) return bPin - aPin;
+                return b.t - a.t;
+            });
+        }
+
+        function buildCardHtml(item, index) {
+            const dateObj = new Date(item.t * 1000);
+            const timeStr = dateObj.getFullYear() + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(dateObj.getDate()).padStart(2, '0') + ' ' + String(dateObj.getHours()).padStart(2, '0') + ':' + String(dateObj.getMinutes()).padStart(2, '0');
+
+            const baseName = (item.s === 1) ? '我' : '她';
+            const pinHtml = item.pinned ? '<span style="margin-right: 6px; font-size: 12px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">📌</span>' : '';
+
+            const pinText = item.pinned ? '取消' : '置顶';
+            const pinClass = item.pinned ? 'pinned' : '';
+            const isSelected = selectedIds.has(item.i);
+            const selectedClass = isSelected ? 'selected' : '';
+
+            let cleanContent = item.b.replace(/\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(?:<br\s*\/?>|\n|\r|\s)*/g, '');
+            const hasAudio = /<audio/i.test(cleanContent);
+            let finalContentHtml = '';
+
+            if (hasAudio) {
+                let srcMatch = cleanContent.match(/<audio[^>]*src=['"]([^'"]+)['"][^>]*>/i);
+                let src = srcMatch ? srcMatch[1] : '';
+                let textPart = cleanContent.replace(/<audio[^>]*>.*?<\/audio>|<audio[^>]*>/gi, '').trim();
+                const cachedSecs = src ? getCachedDuration(src) : null;
+                const durationText = cachedSecs !== null ? `${cachedSecs}\"` : '...';
+                const totalTimeAttr = cachedSecs !== null ? ` data-total-time="${cachedSecs}" data-duration-loaded="true"` : '';
+
+                finalContentHtml = `
+                    <div class="audio-preview">
+                        <div class="custom-audio-player lazy-audio" data-src="${src}"${totalTimeAttr} onclick="playCustomAudio('${src}', this, event)">
+                            <div class="custom-audio-icon">▶</div>
+                            <div class="voice-waves">
+                                <div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div>
+                            </div>
+                            <span class="custom-audio-duration">${durationText}</span>
+                        </div>
+                    </div>
+                    ${textPart ? `<div class="audio-full-text">${textPart}</div>` : ''}
+                `;
+            } else {
+                let previewText = cleanContent.replace(/<img[^>]*>/gi, '[图片/表情]').replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '');
+                finalContentHtml = `
+                    <div class="text-preview">${previewText}</div>
+                    <div class="text-full">${cleanContent}</div>
+                `;
+            }
+
+            return `
+                <div class="card-row ${selectedClass}" id="row-${item.i}" onclick="handleRowClick('${item.i}', event)" style="animation-delay: ${index * 0.03}s">
+                    <div class="check-wrap"><div class="check-circle"></div></div>
+                    <div class="fav-card ${pinClass}">
+                        <div class="fav-header">
+                            <span class="fav-sender">${baseName}</span>
+                            ${pinHtml}
+                            <span class="fav-time">${timeStr}</span>
+                            <div class="expand-icon">▼</div>
+                            <div class="action-btns">
+                                <span class="pin-btn" onclick="togglePin('${item.i}', event)">${pinText}</span>
+                                <span class="delete-btn" onclick="triggerDelete('${item.i}', this, event)">删除</span>
+                            </div>
+                        </div>
+                        <div class="fav-content">${finalContentHtml}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function appendNextBatch(count) {
+            if (renderedCount >= sortedFavs.length) return;
+
+            const limit = typeof count === 'number' ? count : RENDER_BATCH_COUNT;
+            const startIndex = renderedCount;
+            const endIndex = Math.min(renderedCount + limit, sortedFavs.length);
+            const list = sortedFavs.slice(startIndex, endIndex);
+
+            let html = '';
+            list.forEach((item, idx) => {
+                html += buildCardHtml(item, startIndex + idx);
+            });
+
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            const rows = Array.from(temp.children);
+
+            if (loadMoreSentinel.parentNode === favList) {
+                favList.removeChild(loadMoreSentinel);
+            }
+
+            const fragment = document.createDocumentFragment();
+            rows.forEach(row => fragment.appendChild(row));
+            favList.appendChild(fragment);
+
+            renderedCount = endIndex;
+            bindLazyAudioWithin(rows);
+            queueExpandableDetection(rows);
+            setupLoadMoreObserver();
+            updateBottomBar();
+        }
+
+        function setupLoadMoreObserver() {
+            if (loadMoreObserver) loadMoreObserver.disconnect();
+            if (renderedCount >= sortedFavs.length) return;
+
+            if (loadMoreSentinel.parentNode !== favList) {
+                favList.appendChild(loadMoreSentinel);
+            }
+
+            loadMoreObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        appendNextBatch(RENDER_BATCH_COUNT);
+                    }
+                });
+            }, { rootMargin: '350px 0px' });
+
+            loadMoreObserver.observe(loadMoreSentinel);
+        }
+
         function renderList() {
             updateStat(); 
             if (favs.length === 0) {
                 manageBtn.style.display = 'none'; 
                 if(isEditMode) toggleEditMode();  
+                if (loadMoreObserver) loadMoreObserver.disconnect();
+                expandableCheckQueue = [];
                 favList.innerHTML = `<div class="empty-state"><div class="empty-icon">⭐</div><div>还没有收藏哦<br>快去聊天记录里双击那些闪光的句子吧</div></div>`;
                 return;
             }
             manageBtn.style.display = 'block';
 
-            favs.sort((a, b) => {
-                const aPin = a.pinned ? 1 : 0; const bPin = b.pinned ? 1 : 0;
-                if (aPin !== bPin) return bPin - aPin; return b.t - a.t;
-            });
+            sortedFavs = getSortedFavs();
+            renderedCount = 0;
+            expandableCheckQueue = [];
+            favList.innerHTML = '';
 
-            let html = '';
-            favs.forEach((item, index) => {
-                const dateObj = new Date(item.t * 1000);
-                const timeStr = dateObj.getFullYear() + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(dateObj.getDate()).padStart(2, '0') + ' ' + String(dateObj.getHours()).padStart(2, '0') + ':' + String(dateObj.getMinutes()).padStart(2, '0');
-                
-                const baseName = (item.s === 1) ? '我' : '她';
-                const pinHtml = item.pinned ? '<span style="margin-right: 6px; font-size: 12px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">📌</span>' : '';
-                
-                const pinText = item.pinned ? '取消' : '置顶';
-                const pinClass = item.pinned ? 'pinned' : '';
-                const isSelected = selectedIds.has(item.i);
-                const selectedClass = isSelected ? 'selected' : '';
-
-                let cleanContent = item.b.replace(/\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(?:<br\s*\/?>|\n|\r|\s)*/g, '');
-                const hasAudio = /<audio/i.test(cleanContent);
-                let finalContentHtml = '';
-
-                if (hasAudio) {
-                    let srcMatch = cleanContent.match(/<audio[^>]*src=['"]([^'"]+)['"][^>]*>/i);
-                    let src = srcMatch ? srcMatch[1] : '';
-                    let textPart = cleanContent.replace(/<audio[^>]*>.*?<\/audio>|<audio[^>]*>/gi, '').trim();
-                    
-                    finalContentHtml = `
-                        <div class="audio-preview">
-                            <div class="custom-audio-player lazy-audio" data-src="${src}" onclick="playCustomAudio('${src}', this, event)">
-                                <div class="custom-audio-icon">▶</div>
-                                <div class="voice-waves">
-                                    <div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div>
-                                </div>
-                                <span class="custom-audio-duration">...</span>
-                            </div>
-                        </div>
-                        ${textPart ? `<div class="audio-full-text">${textPart}</div>` : ''}
-                    `;
-                } else {
-                    let previewText = cleanContent.replace(/<img[^>]*>/gi, '[图片/表情]').replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '');
-                    finalContentHtml = `
-                        <div class="text-preview">${previewText}</div>
-                        <div class="text-full">${cleanContent}</div>
-                    `;
-                }
-
-                html += `
-                    <div class="card-row ${selectedClass}" id="row-${item.i}" onclick="handleRowClick('${item.i}', event)" style="animation-delay: ${index * 0.05}s">
-                        <div class="check-wrap"><div class="check-circle"></div></div>
-                        <div class="fav-card ${pinClass}">
-                            <div class="fav-header">
-                                <span class="fav-sender">${baseName}</span>
-                                ${pinHtml}
-                                <span class="fav-time">${timeStr}</span>
-                                <div class="expand-icon">▼</div>
-                                <div class="action-btns">
-                                    <span class="pin-btn" onclick="togglePin('${item.i}', event)">${pinText}</span>
-                                    <span class="delete-btn" onclick="triggerDelete('${item.i}', this, event)">删除</span>
-                                </div>
-                            </div>
-                            <div class="fav-content">${finalContentHtml}</div>
-                        </div>
-                    </div>
-                `;
-            });
-            favList.innerHTML = html;
-            
-            // ★ 核心修复：智能计算哪些卡片需要被折叠
-            document.querySelectorAll('.card-row').forEach(row => {
-                const card = row.querySelector('.fav-card');
-                
-                // 1. 如果是语音消息：只要有附属文字，就赋予可展开权限
-                const audioPreview = card.querySelector('.audio-preview');
-                if (audioPreview) {
-                    const fullText = card.querySelector('.audio-full-text');
-                    if (fullText) card.classList.add('is-expandable');
-                    return;
-                }
-                
-                // 2. 如果是文字消息：
-                const textPreview = card.querySelector('.text-preview');
-                const textFull = card.querySelector('.text-full');
-                if (textPreview && textFull) {
-                    const hasImg = /<img/i.test(textFull.innerHTML);
-                    const hasBr = /<br/i.test(textFull.innerHTML);
-                    
-                    // 核心算法：通过对比真实物理渲染宽度（scrollWidth）和卡片内部容器宽度（clientWidth）
-                    // 只要 scrollWidth 大于 clientWidth，就说明文字被单行截断了，需要展开！
-                    if (hasImg || hasBr || textPreview.scrollWidth > textPreview.clientWidth + 1) {
-                        card.classList.add('is-expandable');
-                    }
-                }
-            });
-            
-            // 绑定懒加载
-            document.querySelectorAll('.lazy-audio:not(.observing)').forEach(el => {
-                el.classList.add('observing');
-                audioDurationObserver.observe(el);
-            });
-
-            updateBottomBar();
+            appendNextBatch(INITIAL_RENDER_COUNT);
         }
 
         function toggleEditMode() {
@@ -457,26 +653,33 @@
 
         function togglePin(id, event) {
             event.stopPropagation(); const index = favs.findIndex(f => f.i == id); if(index === -1) return;
+            const anchor = captureViewportAnchor();
             favs[index].pinned = !favs[index].pinned; localStorage.setItem('chat_favs', JSON.stringify(favs));
-            const currentScrollY = window.scrollY; renderList(); window.scrollTo(0, currentScrollY);
+            rerenderWithAnchor(anchor);
         }
 
         function triggerDelete(id, btnElement, event) {
             event.stopPropagation(); const index = favs.findIndex(f => String(f.i) === String(id)); if(index === -1) return;
+            const anchor = captureViewportAnchor();
             currentDeletedItems = [favs[index]]; favs.splice(index, 1); localStorage.setItem('chat_favs', JSON.stringify(favs)); updateStat();
             const row = document.getElementById(`row-${id}`); if(row) row.classList.add('removing');
             showToast('已删除');
-            setTimeout(() => { if(row && row.parentNode) row.remove(); if (favs.length === 0) renderList(); }, 300);
+            setTimeout(() => {
+                rerenderWithAnchor(anchor);
+            }, 300);
         }
 
         function batchDelete() {
             if (selectedIds.size === 0) return;
+            const anchor = captureViewportAnchor();
             currentDeletedItems = favs.filter(f => selectedIds.has(String(f.i))); favs = favs.filter(f => !selectedIds.has(String(f.i)));
             localStorage.setItem('chat_favs', JSON.stringify(favs)); updateStat(); 
             const idsToRemove = Array.from(selectedIds);
             idsToRemove.forEach(id => { const row = document.getElementById(`row-${id}`); if(row) row.classList.add('removing'); });
             const deletedCount = idsToRemove.length; showToast('已删除'); toggleEditMode(); 
-            setTimeout(() => { idsToRemove.forEach(id => { const row = document.getElementById(`row-${id}`); if(row && row.parentNode) row.remove(); }); if (favs.length === 0) { renderList(); } }, 300);
+            setTimeout(() => {
+                rerenderWithAnchor(anchor);
+            }, 300);
         }
 
         function showToast(msg) {
@@ -486,9 +689,10 @@
 
         function undoDelete() {
             if(currentDeletedItems.length === 0) return;
+            const anchor = captureViewportAnchor();
             favs.push(...currentDeletedItems); localStorage.setItem('chat_favs', JSON.stringify(favs)); updateStat(); 
             toast.classList.remove('show'); if(toastTimeout) clearTimeout(toastTimeout); currentDeletedItems = [];
-            const currentScrollY = window.scrollY; renderList(); window.scrollTo(0, currentScrollY);
+            rerenderWithAnchor(anchor);
         }
 
         renderList();
