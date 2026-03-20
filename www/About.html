@@ -154,7 +154,7 @@
         <div class="app-info">
             <img src="icon/logo.png" class="app-logo">
             <h2 style="margin: 5px 0; font-weight: 900; letter-spacing: 1px;">时光拾遗</h2>
-            <span class="version-tag">@Build v2.3.0</span>
+            <span class="version-tag">@Build v2.4.0</span>
         </div>
 
         <div class="timeline">
@@ -162,12 +162,102 @@
             <div class="version-group">
                 <div class="group-header" onclick="toggleGroup(this)">
                     <div>
-                        <div class="group-title">v2.3</div>
+                        <div class="group-title">v2.4</div>
                         <div class="group-meta"> · 包含 1 个更新</div>
                     </div>
                     <div class="toggle-icon" style="transform: rotate(180deg);">▼</div>
                 </div>
                 <div class="group-content" style="display: block;">
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.4.0</span><span class="v-time">2026.03.20</span></div>
+                            <span class="tag tag-epic">性能升级</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">收藏页渲染链路重构</div>
+                            <p class="v-desc">
+                                可展开检测改为分帧批处理；<br>
+                                避免集中重排导致的首屏卡顿；<br>
+                                列表首开交互响应速度显著提升。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>把一次性计算压力拆散到多帧执行。</div>
+                        </div>
+                    </div>
+                 </div>
+
+            <div class="version-group">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <div>
+                        <div class="group-title">v2.3</div>
+                        <div class="group-meta"> · 包含 5 个更新</div>
+                    </div>
+                    <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+                </div>
+                <div class="group-content" style="display: none;">
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.3.4</span><span class="v-time">2026.03.20</span></div>
+                            <span class="tag tag-opt">缓存优化</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">语音时长本地缓存机制上线</div>
+                            <p class="v-desc">
+                                已解析过的语音时长写入本地缓存；<br>
+                                下次进入页面直接命中并渲染时长；<br>
+                                减少 metadata 重复读取与等待。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>同一语音二次加载几乎秒显时长。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.3.3</span><span class="v-time">2026.03.20</span></div>
+                            <span class="tag tag-feat">机制新增</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">大列表分批渲染</div>
+                            <p class="v-desc">
+                                首屏仅渲染关键卡片，后续按批次追加；<br>
+                                底部哨兵自动触发下一批加载；<br>
+                                大量场景下，首开速度与滚动稳定性改善。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>大规模数据时不再一次性堆满DOM。</div>
+                        </div>
+                    </div>
+
+                    <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.3.2</span><span class="v-time">2026.03.20</span></div>
+                            <span class="tag tag-ux">体验优化</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">锚点级滚动位置恢复</div>
+                            <p class="v-desc">
+                                置顶、删除、撤销后改为卡片锚点恢复视口；<br>
+                                不再依赖单纯scrollY回滚；<br>
+                                长列表操作后视线位置更稳、不易跳段。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>高频编辑场景下浏览连续性显著增强。</div>
+                        </div>
+                    </div>
+
+                     <div class="node">
+                        <div class="v-header">
+                            <div class="v-num-box"><span class="v-num">V 2.3.1</span><span class="v-time">2026.03.20</span></div>
+                            <span class="tag tag-fix">数据可读</span>
+                        </div>
+                        <div class="v-card">
+                            <div class="v-title">主数据层级调整</div>
+                            <p class="v-desc">
+                                “总字数”从并列布局改为下一行展示；<br>
+                                首屏数据重点更聚焦。
+                            </p>
+                            <div class="pitfall"><span class="pit-icon">!</span>保持页面风格一致的同时提升信息冲击力。</div>
+                        </div>
+                    </div>
 
                     <div class="node">
                         <div class="v-header">
